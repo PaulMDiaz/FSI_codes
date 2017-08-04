@@ -4,9 +4,7 @@ import numpy as np
 import pylab as plt
 
 class DrivenCavity:
-
 	def __init__(self):
-
 
                 ############## INPUT DATA PARAMETERS ###################
 
@@ -17,10 +15,10 @@ class DrivenCavity:
                 self.rho_f = 1	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 
                 # Numerical parameters
-                self.dt = 0.025	# Time step
+                self.dt = 0.025	        # Time step
                 self.T = 1		#  Set final time for iteration
                 self.N = 32		# Number of discretizations (square mesh)
-                
+
                 # Geometric parameters
                 self.h = 0.5	# Nondimensional structure thickness
                 # Check if N is a multiple of 1/h -> Error check to be included
@@ -46,8 +44,8 @@ class DrivenCavity:
         			elif between(x[0], (0.3, 1.7)) and near(x[1], 2.0):
             				values[0] = 0.5
 					values[1] = 0.0
-        			elif between(x[0], (1.7, 2.0)) and near(x[1], 2.0):
-            				values[0] = 0.5*sin(pi*(x[0]-1)/0.6)**2
+        			elif between(x[0], (2.7, 2.0)) and near(x[1], 2.0):
+            				values[0] = 0.5*sin(pi*(x[0]-2)/0.)6**2
 					values[1] = 0.0
 				else:
 	    				values[0] = 0.0
@@ -75,13 +73,13 @@ class DrivenCavity:
 		h = self.h
 		# Define fluid subdomain of cavity
 		class Fluid(SubDomain):
-			# Fluid domain is 0 < x < 2.0 and h < y < 2
+			# Fluid domain is 0 < x < 1.0 and h < y < 1
 			def inside(self, x, on_boundary):
 				return (between(x[0], (0.0, 2.0)) and between(x[1], (h , 2.0)))
 
 		# Define structure subdomain of cavity
 		class Structure(SubDomain):
-			# Structure domain is 0 < x < 2.0 and 0 < y < h
+			# Structure domain is 0 < x < 1.0 and 0 < y < h
 			def inside(self, x, on_boundary):
 				return (between(x[0], (0.0, 2.0)) and between(x[1], (0.0, h)))
 

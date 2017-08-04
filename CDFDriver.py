@@ -21,25 +21,10 @@ import math
 parameters["allow_extrapolation"] = True
 set_log_level(ERROR)
 
-############## INPUT DATA PARAMETERS ###################
 
-# Physical parameters
-nu_f = 0.01	# Fluid viscosity
-nu_s = 0.2	# Structure Poisson coefficient
-E_s = 1e3	# Structure Young modulus
-rho_f = 1	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
-
-# Numerical parameters
-dt = 0.025	# Time step
-T = 1		#  Set final time for iteration
-N = 32		# Number of discretizations (square mesh)
-
-# Geometric parameters
-h = 0.25	# Nondimensional structure thickness
-# Check if N is a multiple of 1/h -> Error check to be included
 
 #  Create Object with Driven Cavity expressions, mesh and subdomains
-DC = DrivenCavity(nu_f, nu_s, E_s, rho_f, dt, T, N, h)
+DC = DrivenCavity()
 IO = IO()
 
 ############# Fluid Solver Setup section #################
@@ -66,10 +51,10 @@ F = Fluid_Solver(DC.mesh_f, FluidElementType,
 ########### Structure Solver Setup section #################
 
 #  Set the Structure Element Type
-StructureElementType = "CG"
+StructureElementType = "CG" # CG is equivilent to lagrange. 
 
 #  Set the Structure Element Degree
-StructureElementDegree = 1
+StructureElementDegree = 1 # Standard linear lagrange element. 
 
 # Set the solver used for the structure problem
 # The options are "Linear" or "NeoHookean" for the structure solver
@@ -94,17 +79,72 @@ while DC.t < DC.T + DOLFIN_EPS:
 	for ii in range(3):
 		print ''
 		print ''
+                # not sure what time loop iteration number is... how many to converge at given time step? 
 		print 'Time loop iteration number = ', DC.iter_t
 		print 'Loop iteration time = ', DC.t
 
+                # Solve fluid problem for velocity and pressure
+		F.Fluid_Problem_Solver(DC, S) 
 		# Compute structural displacement and velocity
 		S.Structure_Problem_Solver(DC, F)
 		# Compute velocity mesh
 		IO.Move_Mesh(S, F)
-		# Solve fluid problem for velocity and pressure
-		F.Fluid_Problem_Solver(DC, S)
 
-	S.d0.assign(S.d)
-	F.u0.assign(F.u1)
+
+                # Code check, exit while loop after first time step.
+                # Print fluid stress, sturcture and mesh displacement along interface. 
+        if DC.t == DC.dt:
+                print 'Checking interface solutions at time:', DC.dt
+                # interface_values boundary is FSI() marked as F.fsi.mark(F.facets, 3)
+                #print "Fluid stuff: %d" %(F.sigma_FSI)
+                #sys.exit() # stops the script.
+                #print "Fluid stuff: %d" %( )
+                #u_array = F.u1
+                u_nodal_array = F.u1.vector().array()
+                print u_nodal_array[42]
+                #print u_nodal_array.shape
+                #print F.u1.vector().shape
+                # Get vertices sitting on boundary
+                #d2v = dof_to_vertex_map(F.S_space)
+                #vertices_on_boundary = d2v
+                #print "fluid velocity on interface = " , F.u1.vector()[F.v_.vector() == 3].array()
+                #print "fluid velocity on interface = " , F.u1.vector()[F.v_.vector() == ]
+
+                #print F.mesh.num_vertices()
+                #print F.mesh.num_cells()
+                #print len(u_nodal_array)
+
+                # number of coordinates is less then u soltutions
+                
+                #coor = F.mesh.coordinates()
+                #if F.mesh.num_vertices() == len(u_nodal_array):
+                #        for i in range(F.mesh.num_vertices()):
+                #                print 'u1(%g, %g) = %g' % (coor[i][0], coor[i][1], u_nodal_array[i])
+                F.fsi
+                break
+        
+               
+                
+	S.d0.assign(S.d) # set current time to previous for displacement
+	F.u0.assign(F.u1)# set current time to previous for velocity. (pressure?)
 	for x in F.mesh.coordinates(): x[:] += DC.dt*F.u_mesh(x)[:]
 	DC.Save_Results(S, F)
+
+
+                
+# F.u1.vector() gives nodal values. Convenient to convert to standard numpy array for further processing. ie
+# F.u1.vector().array()
+# mesh.coordinates() returns Mxd array of coordinates. M is number of vertices and d dimension
+# mesh.num_cells() returns number of cells
+# mesh.num_vertices() returns number of vertices
+# str(mesh) gives some mesh details. 
+
+#from numpy import where use np.where
+
+#bc0.apply(u.vector())
+#right_dofs = where(u.vector()==1)
+#bc1.apply(u.vector())
+#top_dofs = where(u.vector()==2)
+
+
+# domains - get mesh domains, geometry

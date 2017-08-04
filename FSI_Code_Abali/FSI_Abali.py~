@@ -56,16 +56,11 @@ T_s_space = TensorFunctionSpace(mesh_s, 'P', 1)
 S_f_space = FunctionSpace(mesh_f, 'P', 1)
 V_f_space = VectorFunctionSpace(mesh_f, 'P', 1)
 T_f_space = TensorFunctionSpace(mesh_f, 'P', 1)
-# introduced by felix
-S_f = FiniteElement("Lagrange", mesh_f.ufl_cell(), 1)
-V_f = VectorElement("Lagrange", mesh_f.ufl_cell(), 2)
-SV_f = S_f * V_f
-SV_f_space = FunctionSpace(mesh_f, SV_f)
-#SV_f_space = MixedFunctionSpace([S_f_space, V_f_space])
+SV_f_space = MixedFunctionSpace([S_f_space, V_f_space])
 
 t = 0.0		# in s
-dt = 0.001	# in s
-t_end = 0.2	# in s 5 with dt 0.01
+dt = 0.01	# in s
+t_end = 5.0	# in s
 
 pwd = './'
 
@@ -99,7 +94,7 @@ def s_solve(u0, u00, sigma_f, t):
         print 'passed sigma_s projection'
         
 	# plot ( facets_s, interactive = True)
-	displ_s_bottom = Expression(('A*sin(2.*pi*nu*t)', '0.0'), A = 0.50, nu = 10., t = t, degree = 2)
+	displ_s_bottom = Expression(('A*sin(2.*pi*nu*t)', '0.0'), A = 0.50, nu = 10., t = t)
 	bc_s = [DirichletBC(V_s_space, displ_s_bottom, facets_s, 1)]
 	u_s = Function(V_s_space)
 	del_u = TestFunction(V_s_space)

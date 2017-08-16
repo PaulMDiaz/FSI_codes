@@ -20,7 +20,7 @@ class DrivenCavity:
                 self.dt = 0.05	# Time step
                 self.T = 0.15		#  Set final time for iteration
                 self.N = 32		# Number of discretizations (square mesh)
-                
+
                 # Geometric parameters
                 self.h = 0.5	# Nondimensional structure thickness
                 # Check if N is a multiple of 1/h -> Error check to be included
@@ -78,7 +78,7 @@ class DrivenCavity:
 			# Fluid domain is 0 < x < 2.0 and h < y < 2
 			def inside(self, x, on_boundary):
 				return (between(x[0], (0.0, 2.0)) and between(x[1], (h , 2.0)))
-
+				#return (between(x[0], (0.0, 2.0)) and between(x[1], (h , 2.0)))
 		# Define structure subdomain of cavity
 		class Structure(SubDomain):
 			# Structure domain is 0 < x < 2.0 and 0 < y < h
@@ -215,7 +215,6 @@ class DrivenCavity:
 
 		# Set up the boundary conditions
 		F.bcu = [noSlipLeft, noSlipRight, freestreamV, fluidFSI]
-
 
 	def Save_Results(self, S, F):
 

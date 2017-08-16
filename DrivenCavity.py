@@ -5,20 +5,29 @@ import pylab as plt
 
 class DrivenCavity:
 
-	def __init__(self, nu_f, nu_s, E_s, rho_f, dt, T, N, h):
+	def __init__(self):
 
-		self.nu_f = nu_f
-		self.nu_s = nu_s
-		self.E_s = E_s
-		self.rho_f = rho_f
-		self.dt = dt
-		self.T = T
-		self.N = N
-		self.h = h
+
+                ############## INPUT DATA PARAMETERS ###################
+
+                # Physical parameters
+                self.nu_f = 0.01	# Fluid viscosity
+                self.nu_s = 0.2	# Structure Poisson coefficient
+                self.E_s = 1e3	# Structure Young modulus
+                self.rho_f = 1	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
+
+                # Numerical parameters
+                self.dt = 0.05	# Time step
+                self.T = 0.15		#  Set final time for iteration
+                self.N = 32		# Number of discretizations (square mesh)
+                
+                # Geometric parameters
+                self.h = 0.5	# Nondimensional structure thickness
+                # Check if N is a multiple of 1/h -> Error check to be included
 
 		# Lame' constants
-		self.mu_s = E_s/(2.0*(1.0 + nu_s))
-		self.lambda_s = E_s*nu_s/((1.0 + nu_s)*(1.0 - 2.0*nu_s))
+		self.mu_s = self.E_s/(2.0*(1.0 + self.nu_s))
+		self.lambda_s = self.E_s*self.nu_s/((1.0 + self.nu_s)*(1.0 - 2.0*self.nu_s))
 
 		self.mu_f = self.rho_f*self.nu_f
 
@@ -31,14 +40,14 @@ class DrivenCavity:
 
 			def eval(self, values, x):
 
-        			if between(x[0], (0.0, 0.15)) and near(x[1], 1.0):
-            				values[0] = sin(pi*x[0]/0.3)**2
+        			if between(x[0], (0.0, 0.3)) and near(x[1], 2.0):
+            				values[0] = 0.5*sin(pi*x[0]/0.6)**2
 					values[1] = 0.0
-        			elif between(x[0], (0.15, 0.85)) and near(x[1], 1.0):
-            				values[0] = 1.0
+        			elif between(x[0], (0.3, 1.7)) and near(x[1], 2.0):
+            				values[0] = 0.5
 					values[1] = 0.0
-        			elif between(x[0], (0.85, 1.0)) and near(x[1], 1.0):
-            				values[0] = sin(pi*(x[0]-1)/0.3)**2
+        			elif between(x[0], (1.7, 2.0)) and near(x[1], 2.0):
+            				values[0] = 0.5*sin(pi*(x[0]-1)/0.6)**2
 					values[1] = 0.0
 				else:
 	    				values[0] = 0.0
@@ -51,7 +60,7 @@ class DrivenCavity:
 
 		################ DEFINE MESHES AND DOMAINS #######################
 
-		self.mesh = RectangleMesh(Point(0.0, 0.0), Point(1.0, 1.0), self.N, self.N)	# Global mesh
+		self.mesh = RectangleMesh(Point(0.0, 0.0), Point(2.0, 2.0), self.N, self.N)	# Global mesh
 		self.Define_Subdomains()		# Sets the subdomains and the submeshes for fluid and structure
 
 		self.Dim = self.mesh.topology().dim()
@@ -66,15 +75,15 @@ class DrivenCavity:
 		h = self.h
 		# Define fluid subdomain of cavity
 		class Fluid(SubDomain):
-			# Fluid domain is 0 < x < 1.0 and h < y < 1
+			# Fluid domain is 0 < x < 2.0 and h < y < 2
 			def inside(self, x, on_boundary):
-				return (between(x[0], (0.0, 1.0)) and between(x[1], (h , 1.0)))
+				return (between(x[0], (0.0, 2.0)) and between(x[1], (h , 2.0)))
 
 		# Define structure subdomain of cavity
 		class Structure(SubDomain):
-			# Structure domain is 0 < x < 1.0 and 0 < y < h
+			# Structure domain is 0 < x < 2.0 and 0 < y < h
 			def inside(self, x, on_boundary):
-				return (between(x[0], (0.0, 1.0)) and between(x[1], (0.0, h)))
+				return (between(x[0], (0.0, 2.0)) and between(x[1], (0.0, h)))
 
 
 		# Initialize interior of entire domain

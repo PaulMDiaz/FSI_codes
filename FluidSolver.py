@@ -9,6 +9,7 @@
 #    IOInfo - An object which contains all inputs and outputs for
 #      the Navier Stokes solver implemented herein
 
+
 #from dolfin import *
 from fenics import *
 import numpy as np
@@ -31,11 +32,12 @@ class Fluid_Solver(object):
 		self.V_space = VectorFunctionSpace(self.mesh, self.ElementType, self.VelocityElementDegree)
 		self.T_space = TensorFunctionSpace(self.mesh, self.ElementType, self.VelocityElementDegree)
 
-		# Functions for results
-		self.v_ = Function(self.V_space, name = 'u')
-		self.p_ = Function(self.S_space, name = 'p')
+		## Functions for results, where do these come into it? why different from u1 and p1... 
+		#self.v_ = Function(self.V_space, name = 'u')
+		#self.p_ = Function(self.S_space, name = 'p')
+                # don't appear to be used. except perhaps when u and p are called. but this seems to be the trial function name. 
 
-		# Functions for solver
+		# Functions for solver at previos and current time steps... could also be results...  
 		self.u1 = Function(self.V_space)
 		self.p1 = Function(self.S_space)
 		self.u0 = Function(self.V_space)
@@ -45,7 +47,7 @@ class Fluid_Solver(object):
 		else:
 			print "Error. The solver for the fluid problem should be set to Chorin"
 
-		self.sigma_FSI = Function(self.T_space)
+		self.sigma_FSI = Function(self.T_space) # pressure on interface. a function.. 
 
 		# Trial and test functions
 		self.u = TrialFunction(self.V_space)
@@ -75,10 +77,15 @@ class Fluid_Solver(object):
 
 		I = Identity(DC.Dim)
 
+                # Verify variational form
+                
 		# Tentative velocity step
+                # should u mesh appear anywhere else in this??
 		# In this case u represents the tentative velocity
-		F1 = (1/DC.dt)*inner(self.u - self.u0, self.du)*self.dx + inner(grad(self.u0)*(self.u0 - self.u_mesh), self.du)*self.dx + \
-     			DC.nu_f*inner(grad(self.u), grad(self.du))*self.dx - inner(self.f, self.du)*self.dx
+		F1 = (1/DC.dt)*inner(self.u - self.u0, self.du)*self.dx\  # temporal term. rate of change of velocity 
+                     + inner(grad(self.u0)*(self.u0 - self.u_mesh), self.du)*self.dx\ # convective term
+                     + DC.nu_f*inner(grad(self.u), grad(self.du))*self.dx\   # diffusive term. 
+                     - inner(self.f, self.du)*self.dx    
 		self.a1 = lhs(F1)
 		self.L1 = rhs(F1)
 
@@ -125,6 +132,7 @@ class Fluid_Solver(object):
 
 		self.tau = DC.mu_f*(grad(self.u1) + grad(self.u1).T)
 
+                #sigma_FSI stress at boundary
 		self.sigma_FSI = project(-self.p1*I + self.tau, self.T_space, solver_type = "mumps", \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 

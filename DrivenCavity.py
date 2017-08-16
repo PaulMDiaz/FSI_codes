@@ -17,8 +17,8 @@ class DrivenCavity:
                 self.rho_f = 1	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 
                 # Numerical parameters
-                self.dt = 0.025	# Time step
-                self.T = 1		#  Set final time for iteration
+                self.dt = 0.05	# Time step
+                self.T = 0.15		#  Set final time for iteration
                 self.N = 32		# Number of discretizations (square mesh)
                 
                 # Geometric parameters

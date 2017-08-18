@@ -16,7 +16,7 @@ import numpy as np
 class Structure_Solver:
 	"""Object for FEM structure solver"""
 	def __init__(self, Mesh, ElementType, ElementDegree, StructureSolver, StructureBodyForce):
-		
+
 		# Initialize mesh and FEM solver parameter
 		self.mesh = Mesh # static mesh
 		self.ElementType = ElementType
@@ -36,7 +36,7 @@ class Structure_Solver:
 		self.d = Function(self.V_space)
 		self.d0 = Function(self.V_space)
 		self.u = TrialFunction(self.V_space)
-		self.du = TestFunction(self.V_space)	
+		self.du = TestFunction(self.V_space)
 
 	def Structure_Problem_Solver(self, DC, F):
 
@@ -46,12 +46,12 @@ class Structure_Solver:
 			self.Compressible_NeoHookean_Solver(DC, F)
 		else:
 			print "Error. The only solvers available for the structure are Linear or NeoHookean"
-		
+
 		self.d_dot = project( (self.d - self.d0)/DC.dt, self.V_space, solver_type = "mumps", \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
-	
+
 	def Linear_Elastic_Solver(self, DC, F):
-        
+
 		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
@@ -62,16 +62,16 @@ class Structure_Solver:
 		self.F = I + grad(self.u)
 		self.J = det(self.F)
 		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		
+
 		print ""
 		print ""
 		print "ENTERING STRUCTURE LINEAR SOLVER"
 		print ''
 		print ''
-		
+
 		# Setup variational problem
 		self.a = inner(self.sigma, grad(self.du))*self.dV
-		self.L = inner(self.T_hat, self.du)*self.dA(3) # ds(3) = FSI boundary		
+		self.L = inner(self.T_hat, self.du)*self.dA(3) # ds(3) = FSI boundary
 
 		# Solve variational problem
 		begin("Computing structure displacement")
@@ -83,7 +83,7 @@ class Structure_Solver:
 		print "EXITING STRUCTURE SOLVER"
 
 	def Compressible_NeoHookean_Solver(self, DC, F):
-		
+
 		print ""
 		print ""
 		print "ENTERING STRUCTURE NEOHOOKEAN SOLVER"
@@ -106,15 +106,15 @@ class Structure_Solver:
 
 		# Stored strain energy density
 		self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
-		
+
 		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		
+
 		# Total potential energy
 		self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
 
 		# First directional derivative of Pi about d in the direction of v
 		Form_s = derivative(self.Pi, self.d, self.du)
-		
+
 		# Jacobian of the directional derivative Fd
 		Gain_s = derivative(Form_s, self.d, self.u)
 
@@ -124,12 +124,7 @@ class Structure_Solver:
 			solver_parameters  = {"newton_solver":{"linear_solver" : "mumps", "relative_tolerance" : 1e-3} }, \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 		end()
-		
+
 		print ""
 		print ""
 		print "EXITING STRUCTURE SOLVER"
-
-
-
-		
-

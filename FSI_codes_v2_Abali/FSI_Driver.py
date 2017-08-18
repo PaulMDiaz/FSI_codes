@@ -9,8 +9,7 @@ from StructureSolver import Structure_Solver
 from FluidSolver import Fluid_Solver
 from DrivenCavity import DrivenCavity
 
-# Import IO object
-from iotools import *
+from MeshSolver import *
 
 # Import dolfin and numpy
 from fenics import *
@@ -23,7 +22,7 @@ set_log_level(ERROR)
 
 #  Create Object with Driven Cavity expressions, mesh and subdomains
 DC = DrivenCavity()
-IO = IO()
+Mesh_Solver = Mesh_Solver()
 
 ############# Fluid Solver Setup section #################
 #  Set the Fluid Element Type
@@ -142,7 +141,7 @@ while DC.t < DC.T + DOLFIN_EPS:
 		# Compute structural displacement and velocity
 		S.Structure_Problem_Solver(DC, F)
 		# Compute velocity mesh
-		IO.Move_Mesh(S, F)
+		Mesh_Solver.Move_Mesh(S, F)
 		# Solve fluid problem for velocity and pressure
 		F.Fluid_Problem_Solver(DC, S)
 

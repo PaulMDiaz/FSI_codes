@@ -9,8 +9,7 @@ from StructureSolver import Structure_Solver
 from FluidSolver import Fluid_Solver
 from DrivenCavity import DrivenCavity
 
-# Import IO object
-from iotools import *
+from MeshSolver import *
 
 # Import dolfin and numpy
 from fenics import *
@@ -23,7 +22,7 @@ set_log_level(ERROR)
 
 #  Create Object with Driven Cavity expressions, mesh and subdomains
 DC = DrivenCavity()
-IO = IO()
+Mesh_Solver = Mesh_Solver()
 
 ############# Fluid Solver Setup section #################
 #  Set the Fluid Element Type

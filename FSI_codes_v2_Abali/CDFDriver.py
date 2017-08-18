@@ -97,8 +97,29 @@ i_s_S = np.where((dofs_s_S[:,1] == 0.5))[0] #  & (x <= 0.5)
 i_s_V = np.where((dofs_s_V[:,1] == 0.5))[0] #  & (x <= 0.5)
 i_s_T = np.where((dofs_s_T[:,1] == 0.5))[0] #  & (x <= 0.5)
 
+
+count = 0
+i_f_d_dot = []
+
+for i_s in range(dofs_s_V.shape[0]/2):
+	for i_f in range(dofs_f_V.shape[0]):
+		if (dofs_s_V[i_s*2,0] == dofs_f_V[i_f,0]) & (dofs_s_V[i_s*2,1] == dofs_f_V[i_f,1]):
+			i_f_d_dot.append(i_f)
+			count += count
+i_f_d_dot = np.asarray(i_f_d_dot)
+
+
+# locate fluid interface points that correspond to mesh
+#nrows, ncols = dofs_f_V.shape
+#dtype = {'names':['f{}'.format(i) for i in range(ncols)], 'formats':ncols*[dofs_f_V.dtype]}
+#C = np.intersect1d(dofs_f_V.view(dtype), dofs_s_V.view(dtype), assume_unique = False)
+#C = C.view(dofs_s_V.dtype).reshape(-1,ncols)
+
+
+# = np.where((dofs_f_V[:,1] - dofs_s_V[:,1] == 0 ) & (dofs_f_V[:,0] - dofs_s_V[:,0] == 0 ))[0]
+#ix = np.isin(dofs_f_V[:,1], dofs_s_V[:,1])
 ################ Iteration section ##############################
-stop = 2*DC.dt
+stop = 3*DC.dt
 #print stop
 
 # Sequentialy staggered iteration scheme
@@ -106,6 +127,9 @@ while DC.t < DC.T + DOLFIN_EPS:
 	print ' STARTING TIME LOOP ITERATION ', DC.iter_t
 	DC.t += DC.dt
 	# Loop for convergence between fluid and structure
+	#u_FSI = F.u1.vector()[i_f_V]
+	#print "fluid velocity on interface = ", u_FSI
+
 	for ii in range(3):
 		print ''
 		print ''
@@ -113,12 +137,16 @@ while DC.t < DC.T + DOLFIN_EPS:
 		print 'Time loop iteration number = ', DC.iter_t
 		print 'Loop iteration time = ', DC.t
 
-                # Solve fluid problem for velocity and pressure
-		F.Fluid_Problem_Solver(DC, S)
+		# It is logical to place the fluid solver first because this causes the
+		#structure to deform. However, Placing it last allows the velcities of
+		# mesh, fluid and structure to be compared for the same time step.
+
 		# Compute structural displacement and velocity
 		S.Structure_Problem_Solver(DC, F)
 		# Compute velocity mesh
 		IO.Move_Mesh(S, F)
+		# Solve fluid problem for velocity and pressure
+		F.Fluid_Problem_Solver(DC, S)
 
 	S.d0.assign(S.d) # set current time to previous for displacement
 	F.u0.assign(F.u1)# set current time to previous for velocity. (pressure?)
@@ -129,6 +157,14 @@ while DC.t < DC.T + DOLFIN_EPS:
 		# Fluid velocity, pressure and stress
 		u_FSI = F.u1.vector()[i_f_V]
         #u_FSI = F.v_.vector()[i_f_V]
+		# F.u1.vector().array()
+		#F.u1.vector().array().shape
+
+		# Concatenate dofs_f_V and F.u1.vector.array()
+		u_map = np.concatenate((F.u1.vector().array().reshape(dofs_f_V.shape[0],1), dofs_f_V), axis = 1)
+
+		# Calculate rate of change of deflection in order to compare to mesh velocity
+		d_dot_FSI = S.d_dot.vector()[i_s_V]
 
 		p_FSI = F.p1.vector()[i_f_S]
         #p_FSI = F.p_.vector()[i_f_S]
@@ -141,18 +177,22 @@ while DC.t < DC.T + DOLFIN_EPS:
 		print "fluid pressure on interface = ", p_FSI
 		# fluid mesh velocity
 		u_mesh_FSI = F.u_mesh.vector()[i_f_V]
-		print "fluid mesh velocity on interface = ", u_mesh_FSI
+		#print "fluid mesh velocity on interface = ", u_mesh_FSI
 
-
-
-
+		#/Library/Frameworks/Python.framework/Versions/2.7/bin/python
+#engr2-1-11-24-edu:FSI_codes_v2_Abali felixnewberry$
 
         # check this indentation is correct.
         # can print mesh velocity... what about displacement? Or structure velocity. Something to compare.
-
-        #print "fluid velocity on interface = ", u_FSI
+		#print "fluid velocity on interface = ", u_FSI
+		# Non zero? Not a good sign... Coordinates given by dofs_f_V[i_f_V]
         #print "fluid pressure on interface = ", p_FSI
 		#print "about to break"
+		print "2 norm mesh and fluid velocities on boundary:", np.linalg.norm(u_FSI-u_mesh_FSI)
+		print "2 norm mesh and fluid velocites entire domain:", np.linalg.norm(F.u_mesh.vector().array() -F.u1.vector().array())
+		print "2 norm mesh and structure velocites entire domain:", np.linalg.norm(F.u_mesh.vector()[i_f_d_dot] - d_dot_FSI)
+
+
 		break
 
 	for x in F.mesh.coordinates(): x[:] += DC.dt*F.u_mesh(x)[:]

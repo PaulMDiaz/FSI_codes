@@ -43,7 +43,7 @@ class Structure_Solver:
 		if self.solver == "Linear":
 			self.Linear_Elastic_Solver(DC, F)
 		elif self.solver == "NeoHookean":
-			self.Compressible_NeoHookean_Solver(DC, F)
+			self.Incompressible_NeoHookean_Solver(DC, F)
 		else:
 			print "Error. The only solvers available for the structure are Linear or NeoHookean"
 
@@ -106,6 +106,54 @@ class Structure_Solver:
 
 		# Stored strain energy density
 		self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
+
+		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
+
+		# Total potential energy
+		self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
+
+		# First directional derivative of Pi about d in the direction of v
+		Form_s = derivative(self.Pi, self.d, self.du)
+
+		# Jacobian of the directional derivative Fd
+		Gain_s = derivative(Form_s, self.d, self.u)
+
+		begin("Computing structure displacement")
+		# Solve variational problem
+		solve(Form_s == 0, self.d, self.bcs, J = Gain_s, \
+			solver_parameters  = {"newton_solver":{"linear_solver" : "mumps", "relative_tolerance" : 1e-3} }, \
+			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+		end()
+
+		print ""
+		print ""
+		print "EXITING STRUCTURE SOLVER"
+
+	def Incompressible_NeoHookean_Solver(self, DC, F):
+
+		print ""
+		print ""
+		print "ENTERING STRUCTURE NEOHOOKEAN SOLVER"
+		print ''
+		print ''
+
+		I = Identity(DC.Dim)
+
+		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
+			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+
+
+		# Kinematics
+		self.F = I + grad(self.d)			# Deformation gradient
+		self.C = self.F.T*self.F			# Right Cauchy-Green tensor
+		self.Ic = tr(self.C)
+
+		# Invariants of deformation tensor
+		self.J = det(self.F)
+
+		# Stored strain energy density
+		#self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
+		self.psi = (DC.mu_s/2)*(self.Ic-3)
 
 		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
 

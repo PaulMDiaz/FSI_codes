@@ -116,7 +116,7 @@ i_f_d_dot = np.asarray(i_f_d_dot)
 # = np.where((dofs_f_V[:,1] - dofs_s_V[:,1] == 0 ) & (dofs_f_V[:,0] - dofs_s_V[:,0] == 0 ))[0]
 #ix = np.isin(dofs_f_V[:,1], dofs_s_V[:,1])
 ################ Iteration section ##############################
-stop = 3*DC.dt
+stop = 1*DC.dt
 #print stop
 
 # Sequentialy staggered iteration scheme
@@ -137,9 +137,17 @@ while DC.t < DC.T + DOLFIN_EPS:
 		# It is logical to place the fluid solver first because this causes the
 		#structure to deform. However, Placing it last allows the velcities of
 		# mesh, fluid and structure to be compared for the same time step.
-
+		d_FSI  = S.d.vector()[i_s_S]
+		print "structure deflection on interface = ", d_FSI
 		# Compute structural displacement and velocity
+		sigma_FSI = F.sigma_FSI.vector()[i_f_T]
+		print 'sigma_FSI = ', sigma_FSI
+
 		S.Structure_Problem_Solver(DC, F)
+		d_FSI  = S.d.vector()[i_s_S]
+		print "structure deflection on interface = ", d_FSI
+		sigma_FSI = S.sigma_FSI.vector()[i_f_T]
+		print 'sigma_FSI = ', sigma_FSI
 		# Compute velocity mesh
 		Mesh_Solver.Move_Mesh(S, F)
 		# Solve fluid problem for velocity and pressure

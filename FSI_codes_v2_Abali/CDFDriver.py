@@ -51,10 +51,10 @@ F = Fluid_Solver(DC.mesh_f, FluidElementType,
 ########### Structure Solver Setup section #################
 
 #  Set the Structure Element Type
-StructureElementType = "CG" # CG is equivilent to lagrange. 
+StructureElementType = "CG" # CG is equivilent to lagrange.
 
 #  Set the Structure Element Degree
-StructureElementDegree = 1 # Standard linear lagrange element. 
+StructureElementDegree = 1 # Standard linear lagrange element.
 
 # Set the solver used for the structure problem
 # The options are "Linear" or "NeoHookean" for the structure solver
@@ -74,9 +74,9 @@ DC.Define_Boundary_Conditions(S, F)
 ### for printing the interaction
 
 # Fluid  array of coordinates
-                
+
 # !!! have to check that these coordinates remain on boundary... don't move. Otherwise condition is wrong !!!
-                
+
 # S scalar, V vector, T Tensor
 dofs_f_S = F.S_space.tabulate_dof_coordinates().reshape((F.S_space.dim(),-1))
 dofs_f_V = F.V_space.tabulate_dof_coordinates().reshape((F.V_space.dim(),-1))
@@ -86,7 +86,7 @@ dofs_f_T = F.T_space.tabulate_dof_coordinates().reshape((F.T_space.dim(),-1))
 dofs_s_S = S.S_space.tabulate_dof_coordinates().reshape((S.S_space.dim(),-1))
 dofs_s_V = S.V_space.tabulate_dof_coordinates().reshape((S.V_space.dim(),-1))
 dofs_s_T = S.T_space.tabulate_dof_coordinates().reshape((S.T_space.dim(),-1))
-   
+
 #Extract dof indices for values on boundary.
 # y = 0.5 if mesh is not deformed.
 i_f_S = np.where((dofs_f_S[:,1] == 0.5))[0] #  & (x <= 0.5)
@@ -97,105 +97,115 @@ i_s_S = np.where((dofs_s_S[:,1] == 0.5))[0] #  & (x <= 0.5)
 i_s_V = np.where((dofs_s_V[:,1] == 0.5))[0] #  & (x <= 0.5)
 i_s_T = np.where((dofs_s_T[:,1] == 0.5))[0] #  & (x <= 0.5)
 
+
+count = 0
+i_f_d_dot = []
+
+for i_s in range(dofs_s_V.shape[0]/2):
+	for i_f in range(dofs_f_V.shape[0]):
+		if (dofs_s_V[i_s*2,0] == dofs_f_V[i_f,0]) & (dofs_s_V[i_s*2,1] == dofs_f_V[i_f,1]):
+			i_f_d_dot.append(i_f)
+			count += count
+i_f_d_dot = np.asarray(i_f_d_dot)
+
+
+# locate fluid interface points that correspond to mesh
+#nrows, ncols = dofs_f_V.shape
+#dtype = {'names':['f{}'.format(i) for i in range(ncols)], 'formats':ncols*[dofs_f_V.dtype]}
+#C = np.intersect1d(dofs_f_V.view(dtype), dofs_s_V.view(dtype), assume_unique = False)
+#C = C.view(dofs_s_V.dtype).reshape(-1,ncols)
+
+
+# = np.where((dofs_f_V[:,1] - dofs_s_V[:,1] == 0 ) & (dofs_f_V[:,0] - dofs_s_V[:,0] == 0 ))[0]
+#ix = np.isin(dofs_f_V[:,1], dofs_s_V[:,1])
 ################ Iteration section ##############################
-stop = 10*DC.dt
+stop = 3*DC.dt
 #print stop
 
 # Sequentialy staggered iteration scheme
 while DC.t < DC.T + DOLFIN_EPS:
 	print ' STARTING TIME LOOP ITERATION ', DC.iter_t
 	DC.t += DC.dt
+	# Loop for convergence between fluid and structure
+	#u_FSI = F.u1.vector()[i_f_V]
+	#print "fluid velocity on interface = ", u_FSI
+
 	for ii in range(3):
 		print ''
 		print ''
-                # not sure what time loop iteration number is... how many to converge at given time step? 
+                # not sure what time loop iteration number is... how many to converge at given time step?
 		print 'Time loop iteration number = ', DC.iter_t
 		print 'Loop iteration time = ', DC.t
 
-                # Solve fluid problem for velocity and pressure
-		F.Fluid_Problem_Solver(DC, S)
-                
+		# It is logical to place the fluid solver first because this causes the
+		#structure to deform. However, Placing it last allows the velcities of
+		# mesh, fluid and structure to be compared for the same time step.
+
 		# Compute structural displacement and velocity
 		S.Structure_Problem_Solver(DC, F)
-                
-                d_FSI  = S.d.vector()[i_s_S]
-                print "structure deflection on interface = ", d_FSI
-                
 		# Compute velocity mesh
 		IO.Move_Mesh(S, F)
-                
-                 # fluid mesh velocity
-                #u_mesh_FSI = F.u_mesh.vector()[i_f_V]
-                #print "fluid stress on surface = ", sigma_FSI
-                
-                # Code check, exit while loop after first time step.
-                # Print fluid stress, sturcture and mesh displacement along interface. 
-                if DC.t == stop:
-                        print 'Checking interface solutions at time:', stop
-                        # interface_values boundary is FSI() marked as F.fsi.mark(F.facets, 3)
-                        #print "Fluid stuff: %d" %(F.sigma_FSI)
-                        #sys.exit() # stops the script.
-                        #print "Fluid stuff: %d" %( )
-                        #u_array = F.u1
-                        #u_nodal_array = F.u1.vector().array()
-                        #p_nodal_array = F.p1.vector().array()
-                        # tensor full of things. Need to ponder indexing. How to retrieve stuff. No way apparent using boundaries for now.
-                        # Corresponding coordinates to this?
-                        #sigma_nodal_array = F.sigma_FSI.vector().array()
-                
-                        #print u_nodal_array[0:10]
-                        #print u_nodal_array.shape
-               
-                        # Get vertices sitting on boundary
-                        #d2v_S = dof_to_vertex_map(F.S_space)
-                        # can only tabulate dofs on vertices. 
-                        #d2v_V = dof_to_vertex_map(F.V_space)
-                        #d2v_T = dof_to_vertex_map(F.T_space)
+		# Solve fluid problem for velocity and pressure
+		F.Fluid_Problem_Solver(DC, S)
 
-                        #d2v = dof_to_vertex_map(F.V_space)
-
-                        #vertices_on_boundary = d2v
-                        #print "fluid velocity on interface = " , F.u1.vector()[F.v_.vector() == 3]
-                        #print "fluid velocity on interface = " , F.u1.vector()[F.v_.vector() == ]
-
-                        #or v_ and p_?
-                        # Fluid velocity, pressure and stress
-                        u_FSI = F.u1.vector()[i_f_V]
-                        #u_FSI = F.v_.vector()[i_f_V]
-
-                        p_FSI = F.p1.vector()[i_f_S]
-                        #p_FSI = F.p_.vector()[i_f_S]
-
-                        sigma_FSI = F.sigma_FSI.vector()[i_f_T]
-
-                        # structure deflection
-                        d_FSI  = S.d.vector()[i_s_S]
-                        print "structure deflection on interface = ", d_FSI
-
-                        # fluid mesh velocity
-                        u_mesh_FSI = F.u_mesh.vector()[i_f_V]
-                        print "fluid stress on surface = ", sigma_FSI
-
-                        # check this indentation is correct.
-                        # can print mesh velocity... what about displacement? Or structure velocity. Something to compare. 
-                        
-                        #print "fluid velocity on interface = ", u_FSI
-                        #print "fluid pressure on interface = ", p_FSI  
-                        break
-                               
 	S.d0.assign(S.d) # set current time to previous for displacement
 	F.u0.assign(F.u1)# set current time to previous for velocity. (pressure?)
+
+	if DC.t == stop:
+		print "Checking interface solutions at time:", stop
+
+		# Fluid velocity, pressure and stress
+		u_FSI = F.u1.vector()[i_f_V]
+        #u_FSI = F.v_.vector()[i_f_V]
+		# F.u1.vector().array()
+		#F.u1.vector().array().shape
+
+		# Concatenate dofs_f_V and F.u1.vector.array()
+		u_map = np.concatenate((F.u1.vector().array().reshape(dofs_f_V.shape[0],1), dofs_f_V), axis = 1)
+
+		# Calculate rate of change of deflection in order to compare to mesh velocity
+		d_dot_FSI = S.d_dot.vector()[i_s_V]
+
+		p_FSI = F.p1.vector()[i_f_S]
+        #p_FSI = F.p_.vector()[i_f_S]
+		#print "FSI pressure = ", p_FSI
+		sigma_FSI = F.sigma_FSI.vector()[i_f_T]
+        # structure deflection
+		d_FSI  = S.d.vector()[i_s_S]
+		print "structure deflection on interface = ", d_FSI
+
+		print "fluid pressure on interface = ", p_FSI
+		# fluid mesh velocity
+		u_mesh_FSI = F.u_mesh.vector()[i_f_V]
+		#print "fluid mesh velocity on interface = ", u_mesh_FSI
+
+		#/Library/Frameworks/Python.framework/Versions/2.7/bin/python
+#engr2-1-11-24-edu:FSI_codes_v2_Abali felixnewberry$
+
+        # check this indentation is correct.
+        # can print mesh velocity... what about displacement? Or structure velocity. Something to compare.
+		#print "fluid velocity on interface = ", u_FSI
+		# Non zero? Not a good sign... Coordinates given by dofs_f_V[i_f_V]
+        #print "fluid pressure on interface = ", p_FSI
+		#print "about to break"
+		print "2 norm mesh and fluid velocities on boundary:", np.linalg.norm(u_FSI-u_mesh_FSI)
+		print "2 norm mesh and fluid velocites entire domain:", np.linalg.norm(F.u_mesh.vector().array() -F.u1.vector().array())
+		print "2 norm mesh and structure velocites entire domain:", np.linalg.norm(F.u_mesh.vector()[i_f_d_dot] - d_dot_FSI)
+
+
+		break
+
 	for x in F.mesh.coordinates(): x[:] += DC.dt*F.u_mesh(x)[:]
 	DC.Save_Results(S, F)
 
 
-                
+
 # F.u1.vector() gives nodal values. Convenient to convert to standard numpy array for further processing. ie
 # F.u1.vector().array()
 # mesh.coordinates() returns Mxd array of coordinates. M is number of vertices and d dimension
 # mesh.num_cells() returns number of cells
 # mesh.num_vertices() returns number of vertices
-# str(mesh) gives some mesh details. 
+# str(mesh) gives some mesh details.
 
 #from numpy import where use np.where
 

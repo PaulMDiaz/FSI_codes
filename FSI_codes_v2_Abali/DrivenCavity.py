@@ -17,10 +17,10 @@ class DrivenCavity:
                 self.rho_f = 1	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 
                 # Numerical parameters
-                self.dt = 0.05	# Time step
-                self.T = 0.15		#  Set final time for iteration
+                self.dt = 0.5	# Time step
+                self.T = 6		#  Set final time for iteration
                 self.N = 32		# Number of discretizations (square mesh)
-                
+
                 # Geometric parameters
                 self.h = 0.5	# Nondimensional structure thickness
                 # Check if N is a multiple of 1/h -> Error check to be included
@@ -77,14 +77,14 @@ class DrivenCavity:
 		class Fluid(SubDomain):
 			# Fluid domain is 0 < x < 2.0 and h < y < 2
 			def inside(self, x, on_boundary):
+				#return True if 0.0 <= x[0] <= 2.0 and  h <= x[1] <=  2.0 else False
 				return (between(x[0], (0.0, 2.0)) and between(x[1], (h , 2.0)))
-
 		# Define structure subdomain of cavity
 		class Structure(SubDomain):
 			# Structure domain is 0 < x < 2.0 and 0 < y < h
 			def inside(self, x, on_boundary):
+				#return True if 0.0 <= x[0] <= 2.0 and 0.0 <= x[1] <=  h else False
 				return (between(x[0], (0.0, 2.0)) and between(x[1], (0.0, h)))
-
 
 		# Initialize interior of entire domain
 		# cell function used to mark domains defined by classes above
@@ -118,7 +118,7 @@ class DrivenCavity:
 		# Top boundary for free-stream fluid flow
 		class Top(SubDomain):
 			def inside(self, x, on_boundary):
-				return near(x[1], 1.0)
+				return near(x[1], 2.0)
 
 		# Left boundary for structure and fluid
 		class Left(SubDomain):
@@ -128,7 +128,7 @@ class DrivenCavity:
 		# Right boundary for structure and fluid
 		class Right(SubDomain):
 			def inside(self, x, on_boundary):
-				return near(x[0], 1.0)
+				return near(x[0], 2.0)
 
 		# FSI boundary for fluid and structure
 		class FSI(SubDomain):
@@ -216,9 +216,9 @@ class DrivenCavity:
 		# Set up the boundary conditions
 		F.bcu = [noSlipLeft, noSlipRight, freestreamV, fluidFSI]
 
-
 	def Save_Results(self, S, F):
 
+		#print "herm"
 		S.d_.assign(S.d)
 		self.file_d_s << (S.d_, self.t)
 		F.v_.assign(F.u1)

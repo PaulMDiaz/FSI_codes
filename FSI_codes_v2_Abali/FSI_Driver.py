@@ -67,6 +67,8 @@ S = Structure_Solver(DC.mesh_s, StructureElementType,
 # will be included after computing the fluid.
 DC.Define_Boundary_Conditions(S, F)
 
+DC.Define_Subdomains()
+
 
 ### for printing the interaction
 
@@ -116,7 +118,7 @@ i_f_d_dot = np.asarray(i_f_d_dot)
 # = np.where((dofs_f_V[:,1] - dofs_s_V[:,1] == 0 ) & (dofs_f_V[:,0] - dofs_s_V[:,0] == 0 ))[0]
 #ix = np.isin(dofs_f_V[:,1], dofs_s_V[:,1])
 ################ Iteration section ##############################
-stop = 3*DC.dt
+stop = 9*DC.dt
 #print stop
 
 # Sequentialy staggered iteration scheme

@@ -10,6 +10,7 @@ class DrivenCavity:
 
                 ############## INPUT DATA PARAMETERS ###################
 
+				# Set to match Dunne
                 # Physical parameters
                 self.nu_f = 0.01	# Fluid viscosity
                 self.nu_s = 0.2	# Structure Poisson coefficient
@@ -47,7 +48,7 @@ class DrivenCavity:
             				values[0] = 0.5
 					values[1] = 0.0
         			elif between(x[0], (1.7, 2.0)) and near(x[1], 2.0):
-            				values[0] = 0.5*sin(pi*(x[0]-1)/0.6)**2
+            				values[0] = 0.5*sin(pi*(x[0]-2)/0.6)**2
 					values[1] = 0.0
 				else:
 	    				values[0] = 0.0

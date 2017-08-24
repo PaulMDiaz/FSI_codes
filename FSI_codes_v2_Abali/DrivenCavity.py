@@ -12,13 +12,13 @@ class DrivenCavity:
 
 				# Set to match Dunne
                 # Physical parameters
-                self.nu_f = 0.01	# Fluid viscosity
-                self.nu_s = 0.2	# Structure Poisson coefficient
-                self.E_s = 1e3	# Structure Young modulus
+                self.nu_f = 0.2	# Fluid viscosity
+                #self.nu_s = 0.2	# Structure Poisson coefficient
+                #self.E_s = 1e3	# Structure Young modulus
                 self.rho_f = 1	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 
                 # Numerical parameters
-                self.dt = 0.5	# Time step
+                self.dt = 0.05	# Time step
                 self.T = 6		#  Set final time for iteration
                 self.N = 32		# Number of discretizations (square mesh)
 
@@ -27,8 +27,8 @@ class DrivenCavity:
                 # Check if N is a multiple of 1/h -> Error check to be included
 
 		# Lame' constants
-		self.mu_s = self.E_s/(2.0*(1.0 + self.nu_s))
-		self.lambda_s = self.E_s*self.nu_s/((1.0 + self.nu_s)*(1.0 - 2.0*self.nu_s))
+		self.mu_s = 2 #self.E_s/(2.0*(1.0 + self.nu_s))
+		#self.lambda_s = self.E_s*self.nu_s/((1.0 + self.nu_s)*(1.0 - 2.0*self.nu_s))
 
 		self.mu_f = self.rho_f*self.nu_f
 

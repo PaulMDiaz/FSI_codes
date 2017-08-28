@@ -84,7 +84,7 @@ class Fluid_Solver(object):
 		# In this case u represents the tentative velocity
 
 		 # temporal term. rate of change of velocity
-		 # convective term
+		 # convective term (taken out to match paper?)
 		 # diffusive term.
 		F1 = (1/DC.dt)*inner(self.u - self.u0, self.du)*self.dx\
                      + inner(grad(self.u0)*(self.u0 - self.u_mesh), self.du)*self.dx\

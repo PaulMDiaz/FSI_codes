@@ -145,7 +145,6 @@ class Structure_Solver:
 		#self.sigma_FSI = project(0*I, self.T_space, solver_type = "mumps",\
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
-		print 'did we make it?'
 		# Kinematics
 		self.F = I + grad(self.d)			# Deformation gradient
 		self.C = self.F.T*self.F			# Right Cauchy-Green tensor

@@ -116,7 +116,7 @@ i_f_d_dot = np.asarray(i_f_d_dot)
 # = np.where((dofs_f_V[:,1] - dofs_s_V[:,1] == 0 ) & (dofs_f_V[:,0] - dofs_s_V[:,0] == 0 ))[0]
 #ix = np.isin(dofs_f_V[:,1], dofs_s_V[:,1])
 ################ Iteration section ##############################
-stop = 1*DC.dt
+stop = 0*DC.dt
 #print stop
 
 # Sequentialy staggered iteration scheme
@@ -127,7 +127,7 @@ while DC.t < DC.T + DOLFIN_EPS:
 	#u_FSI = F.u1.vector()[i_f_V]
 	#print "fluid velocity on interface = ", u_FSI
 
-	for ii in range(3):
+	for ii in range(1): #change to 3 to run properly.
 		print ''
 		print ''
                 # not sure what time loop iteration number is... how many to converge at given time step?
@@ -138,7 +138,7 @@ while DC.t < DC.T + DOLFIN_EPS:
 		#structure to deform. However, Placing it last allows the velcities of
 		# mesh, fluid and structure to be compared for the same time step.
 		u_FSI = F.u1.vector()[i_f_V]
-		print "fluid velocity on interface = ", u_FSI
+		#print "fluid velocity on interface = ", u_FSI
 
 		d_FSI  = S.d.vector()[i_s_S]
 		print "structure deflection on interface = ", d_FSI
@@ -150,7 +150,7 @@ while DC.t < DC.T + DOLFIN_EPS:
 		print "structure deflection on interface = ", d_FSI
 
 		sigma_FSI_2 = S.sigma_FSI.vector()[i_s_T]
-		print 'sigma_FSI_2 = ', sigma_FSI_2
+		#print 'sigma_FSI_2 = ', sigma_FSI_2
 
 		#sigma_FSI = S.sigma_FSI.vector()[i_f_T]
 		#print 'sigma_FSI = ', sigma_FSI

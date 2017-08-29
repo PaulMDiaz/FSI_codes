@@ -11,13 +11,6 @@ import math
 
 # Define Mesh
 
-
-
-
-
-
-
-
 # Define structure as domain?
 
 # Initialize classes for fluid and structure domains
@@ -28,15 +21,15 @@ class Structure_params:
         self.mu_s = 2 #self.E_s/(2.0*(1.0 + self.nu_s))
 
         # Number of elements in each dimension
-        self.N_x = 40
-        self.N_y = 10
+        self.N_x = 32
+        self.N_y = 8
 
         # height of structure
         self.h = 0.5
 
         # Numerical parameters
         self.dt = 0.05	# Time step
-        self.T = 0.1		#  Set final time for iteration
+        self.T = 0.00		#  Set final time for iteration ie 0.05
 
         # Set up a variable for time
         self.t = 0
@@ -140,18 +133,18 @@ SP = Structure_params()
 
 class Fluid_Solver(object):
     def __init__(self, SP):
-        print 'work'
+
         self.mesh = SP.mesh
         self.T_space = TensorFunctionSpace(self.mesh, "Lagrange", 2)
         I = Identity(SP.Dim)
-        self.S_space = FunctionSpace(self.mesh, "Lagrange", 1)
-        self.p1 = Function(self.S_space)
+        #self.S_space = FunctionSpace(self.mesh, "Lagrange", 1)
+        #self.p1 = Function(self.S_space)
         #I = np.zeros((2,2))
-        zero_function = Expression("value", value = 0.0, degree = 1)
-        self.sigma_FSI = project(self.p1*I.zero(), self.T_space, solver_type = "mumps", \
+        #zero_function = Expression("value", value = 0.0, degree = 1)
+        self.sigma_FSI = project(I-I, self.T_space, solver_type = "mumps", \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
-        print 'did F work?'
+
 
 F = Fluid_Solver(SP)
 #F.sigma_FSI = np.array
@@ -201,8 +194,8 @@ i_s_T = np.where((dofs_s_T[:,1] == 0.5))[0] #  & (x <= 0.5)
 while SP.t < SP.T + DOLFIN_EPS:
     print ' STARTING TIME LOOP ITERATION ', SP.iter_t
     SP.t += SP.dt
-
-    for ii in range(3):
+    # was range(3), ie to repeat solver until mesh is established.
+    for ii in range(1):
         print ''
         print ''
         print 'Time loop iteration number = ', SP.iter_t

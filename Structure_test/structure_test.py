@@ -19,6 +19,7 @@ class Structure_params:
     def __init__(self):
         # Lame' constants
         self.mu_s = 2 #self.E_s/(2.0*(1.0 + self.nu_s))
+        self.lambda_s = 2.7*10**2
 
         # Number of elements in each dimension
         self.N_x = 32
@@ -38,6 +39,7 @@ class Structure_params:
         self.mesh = RectangleMesh(Point(0.0, 0.0), Point(2.0, self.h), self.N_x, self.N_y)
         self.Dim = self.mesh.topology().dim()
 
+
     # Boundary conditions
     def Define_Boundary_Conditions(self, S):
         h = self.h
@@ -56,7 +58,7 @@ class Structure_params:
 			def inside(self, x, on_boundary):
 				return near(x[1], h)
 
-		# Bottom boundary for structur
+		# Bottom boundary for structure
         class Bottom(SubDomain):
             def inside(self, x, on_boundary):
                 return near(x[1], 0.0)
@@ -162,7 +164,7 @@ StructureElementDegree = 1 # Standard linear lagrange element.
 
 # Set the solver used for the structure problem
 # The options are "Linear" or "NeoHookean" for the structure solver
-StructureSolverMethod = "NeoHookean"
+StructureSolverMethod = "Linear"
 # Body forces on the structure
 StructureBodyForce = Constant((0.0, 0.0))
 

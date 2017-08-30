@@ -140,8 +140,10 @@ class Structure_Solver:
 		I = Identity(DC.Dim)
 
 		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
-			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+		#	form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
+		#self.sigma_FSI = project(0*I, self.T_space, solver_type = "mumps",\
+			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
 		# Kinematics
 		self.F = I + grad(self.d)			# Deformation gradient

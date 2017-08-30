@@ -121,7 +121,7 @@ stop = 1*DC.dt
 
 # Sequentialy staggered iteration scheme
 while DC.t < DC.T + DOLFIN_EPS:
-	print ' STARTING TIME LOOP ITERATION ', DC.iter_t
+	print 'STARTING TIME LOOP ITERATION ', DC.iter_t
 	DC.t += DC.dt
 	# Loop for convergence between fluid and structure
 	#u_FSI = F.u1.vector()[i_f_V]

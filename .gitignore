@@ -1,2 +1,7 @@
 Results_Driven_Cavity_FSI/
 FSI_Code_Abali
+.DS_Store
+./FSI_codes_v1/DS_Store
+./FSI_codes_v2_Abali/DS_Store
+./FSI_codes_Abali/DS_Store
+*.pyc

@@ -116,7 +116,7 @@ StructureElementDegree = 1 # Standard linear lagrange element.
 # The options are "Linear" or "NeoHookean" for the structure solver
 # Note that the Linear solver does not work and didn't work in the original code
 StructureSolverMethod = "NeoHookean"
-StructureSolverMethod = "Linear"
+#StructureSolverMethod = "Linear"
 
 # Body forces on the structure
 StructureBodyForce = Constant((0.0, 0.0))

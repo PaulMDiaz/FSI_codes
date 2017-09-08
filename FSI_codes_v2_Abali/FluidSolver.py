@@ -43,7 +43,7 @@ class Fluid_Solver(object):
 		self.u0 = Function(self.V_space)
 		self.u_mesh = Function(self.V_space)
 		if self.solver == "Chorin":
-			self.us = Function(self.V_space)	#not sure what this is for?
+			self.us = Function(self.V_space)
 		else:
 			print "Error. The solver for the fluid problem should be set to Chorin"
 
@@ -95,30 +95,28 @@ class Fluid_Solver(object):
 
 		# Pressure update
 		self.a2 = inner(grad(self.p), grad(self.dp))*self.dx
-		self.L2 = -(1/DC.dt)*div(self.u1)*self.dp*self.dx #u1 was us... defined with chorin
+		self.L2 = -(1/DC.dt)*div(self.us)*self.dp*self.dx
 
 		# Velocity update
 		self.a3 = inner(self.u, self.du)*self.dx
-		self.L3 = inner(self.u1, self.du)*self.dx - DC.dt*inner(grad(self.p1), self.du)*self.dx #u1 was us... defined with chorin
+		self.L3 = inner(self.us, self.du)*self.dx - DC.dt*inner(grad(self.p1), self.du)*self.dx
 
 		# Assemble matrices
 		self.A1 = assemble(self.a1)
 		self.A2 = assemble(self.a2)
 		self.A3 = assemble(self.a3)
 
-		# Define the matrices to solve the system
+		# Assemble RH vectors
+		self.b1 = assemble(self.L1)
+		self.b2 = assemble(self.L2)
+		self.b3 = assemble(self.L3)
 
-		# Apply boundary conditions to matrices
-		[bc.apply(self.A1) for bc in self.bcu]
-		[bc.apply(self.A2) for bc in self.bcp]
+		# Define the matrices to solve the system
 
 		# Compute tentative velocity step
 		begin("Computing tentative velocity")
-		#[bc.apply(self.A1, self.b1) for bc in self.bcu]
-		#[bc.apply(self.A1) for bc in self.bcu]
-		self.b1 = assemble(self.L1)
-		[bc.apply(self.b1) for bc in self.bcu]
-		solve(self.A1, self.u1.vector(), self.b1, "gmres", "default")
+		[bc.apply(self.A1, self.b1) for bc in self.bcu]
+		solve(self.A1, self.us.vector(), self.b1, "gmres", "default")
 		end()
 
 		prec = "amg" if has_krylov_solver_preconditioner("amg") else "default"
@@ -126,17 +124,13 @@ class Fluid_Solver(object):
 
 		# Pressure correction
 		begin("Computing pressure correction")
-		self.b2 = assemble(self.L2)
-		[bc.apply(self.b2) for bc in self.bcp]
+		[bc.apply(self.A2, self.b2) for bc in self.bcp]
 		solve(self.A2, self.p1.vector(), self.b2, "gmres", "default")
 		end()
 
 		# Velocity correction
 		begin("Computing velocity correction")
-		#[bc.apply(self.A3) for bc in self.bcu]
-		#[bc.apply(self.b3) for bc in self.bcu]
-
-		self.b3 = assemble(self.L3)
+		[bc.apply(self.A3, self.b3) for bc in self.bcu]
 		solve(self.A3, self.u1.vector(), self.b3, "gmres", "default")
 		end()
 

@@ -43,8 +43,7 @@ class Structure_Solver:
 		if self.solver == "Linear":
 			self.Linear_Elastic_Solver(DC, F)
 		elif self.solver == "NeoHookean":
-			#self.Incompressible_NeoHookean_Solver(DC, F)
-			self.Compressible_NeoHookean_Solver(DC, F)
+			self.Incompressible_NeoHookean_Solver(DC, F)
 		else:
 			print "Error. The only solvers available for the structure are Linear or NeoHookean"
 
@@ -63,7 +62,6 @@ class Structure_Solver:
 		self.F = I + grad(self.u)
 		self.J = det(self.F)
 		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		#self.T_hat = Constant((0.0,0.0))
 
 		print ""
 		print ""
@@ -79,7 +77,6 @@ class Structure_Solver:
 		begin("Computing structure displacement")
 		solve(self.a == self.L, self.d, self.bcs, solver_parameters={"symmetric":True})
 		end()
-			#self.Incompressible_NeoHookean_Solver(DC, F)
 
 		print ""
 		print ""
@@ -111,7 +108,7 @@ class Structure_Solver:
 		self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
 
 		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		#self.T_hat = Constant((0.0,0.0))
+
 		# Total potential energy
 		self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
 
@@ -159,7 +156,7 @@ class Structure_Solver:
 		self.psi = (DC.mu_s/2)*(self.Ic-3)
 
 		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		#self.T_hat = Constant((0.0,0.0))
+
 		# Total potential energy
 		self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
 

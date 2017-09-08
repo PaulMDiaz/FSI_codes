@@ -28,7 +28,7 @@ class Structure_params:
         self.mesh = RectangleMesh(Point(0.0, 0.0), Point(2.0, self.h), self.N_x, self.N_y)
         self.Dim = self.mesh.topology().dim() #Not sure what this does?
 
-    # Boundary conditions function for Structure_params object-1
+    # Boundary conditions function for Structure_params object
     def Define_Boundary_Conditions(self, S):
         h = self.h
         # Left boundary for structure and fluid
@@ -115,12 +115,8 @@ StructureElementDegree = 1 # Standard linear lagrange element.
 # Set the solver used for the structure problem
 # The options are "Linear" or "NeoHookean" for the structure solver
 # Note that the Linear solver does not work and didn't work in the original code
-
-#StructureSolverMethod = "NeoHookean"
-StructureSolverMethod = "Linear"
-#StructureSolverMethod = "NeoHookean"
+StructureSolverMethod = "NeoHookean"
 #StructureSolverMethod = "Linear"
-
 
 # Body forces on the structure
 StructureBodyForce = Constant((0.0, 0.0))
@@ -156,7 +152,7 @@ while SP.t < SP.T + DOLFIN_EPS:
         print 'Loop iteration time = ' , SP.t
 
         d_ = S.d.vector()[i_s_S]
-        print 'structure deflection on interface prior to structure solver = ', d_
+        print 'structure deflection on interface = ', d_
 
         #sigma_FSI = F.sigma_FSI.vector()[i_s_T]
         #print 'stress at interface = ', sigma_FSI
@@ -165,6 +161,6 @@ while SP.t < SP.T + DOLFIN_EPS:
         S.Structure_Problem_Solver(SP, F)
 
         d_  = S.d.vector()[i_s_S]
-        print 'structure deflection on interface after structure solver = ', d_
+        print 'structure deflection on interface = ', d_
 
     S.d0.assign(S.d) # set current time to previous for displacement

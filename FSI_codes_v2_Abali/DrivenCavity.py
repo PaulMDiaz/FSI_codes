@@ -10,15 +10,17 @@ class DrivenCavity:
 	    # Physical parameters
 		self.nu_f = 0.2	# Fluid viscosity
 		self.nu_s = 0.2	# Structure Poisson coefficient
-		self.E_s = 1e6	# Structure Young modulus (was 1e3)
+		self.E_s = 1e8	# Structure Young modulus (was 1e3)
 		self.rho_f = 1	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 		# Numerical parameters
 		self.dt = 0.05	# Time step
-		self.T = 0.1		#  Set final time for iteration
+		self.T = 6		#  Set final time for iteration
 		self.N = 32		# Number of discretizations (square mesh)
 
 		# Geometric parameters
 		self.h = 0.5	# Nondimensional structure thickness
+		self.H = 1.5	# Height of entire domain (1.05 for validation, should be 2)
+		self.W = 1		# Width of entire domain (1 for validation, should be 2)
 		# Check if N is a multiple of 1/h -> Error check to be included
 
 		# Lame' constants
@@ -54,7 +56,7 @@ class DrivenCavity:
 
 		################ DEFINE MESHES AND DOMAINS #######################
 
-		self.mesh = RectangleMesh(Point(0.0, 0.0), Point(2.0, 2.0), self.N, self.N)	# Global mesh
+		self.mesh = RectangleMesh(Point(0.0, 0.0), Point(self.W, self.H), self.N, self.N)	# Global mesh
 		self.Define_Subdomains()		# Sets the subdomains and the submeshes for fluid and structure
 
 		self.Dim = self.mesh.topology().dim()
@@ -67,18 +69,20 @@ class DrivenCavity:
 
 	def Define_Subdomains(self):
 		h = self.h
+		W = self.W
+		H = self.H
 		# Define fluid subdomain of cavity
 		class Fluid(SubDomain):
 			# Fluid domain is 0 < x < 2.0 and h < y < 2
 			def inside(self, x, on_boundary):
 				#return True if 0.0 <= x[0] <= 2.0 and  h <= x[1] <=  2.0 else False
-				return (between(x[0], (0.0, 2.0)) and between(x[1], (h , 2.0)))
+				return (between(x[0], (0.0, W)) and between(x[1], (h , H)))
 		# Define structure subdomain of cavity
 		class Structure(SubDomain):
 			# Structure domain is 0 < x < 2.0 and 0 < y < h
 			def inside(self, x, on_boundary):
 				#return True if 0.0 <= x[0] <= 2.0 and 0.0 <= x[1] <=  h else False
-				return (between(x[0], (0.0, 2.0)) and between(x[1], (0.0, h)))
+				return (between(x[0], (0.0, W)) and between(x[1], (0.0, h)))
 
 		# Initialize interior of entire domain
 		# cell function used to mark domains defined by classes above
@@ -121,11 +125,13 @@ class DrivenCavity:
 
 		############## Define boundary domain locations #################
 		h = self.h
+		W = self.W
+		H = self.H
 
 		# Top boundary for free-stream fluid flow
 		class Top(SubDomain):
 			def inside(self, x, on_boundary):
-				return near(x[1], 2.0)
+				return near(x[1], H)
 
 		# Left boundary for structure and fluid
 		class Left(SubDomain):
@@ -135,7 +141,7 @@ class DrivenCavity:
 		# Right boundary for structure and fluid
 		class Right(SubDomain):
 			def inside(self, x, on_boundary):
-				return near(x[0], 2.0)
+				return near(x[0], W)
 
 		# FSI boundary for fluid and structure
 		class FSI(SubDomain):
@@ -212,13 +218,12 @@ class DrivenCavity:
 		noSlipLeft = DirichletBC(F.V_space, Constant((0, 0)), F.left)
 		noSlipRight = DirichletBC(F.V_space, Constant((0, 0)), F.right)
 		#  Freestream velocity boundary condition for top of cavity
-		freestreamV = DirichletBC(F.V_space, self.U_top, F.top)
+		#freestreamV = DirichletBC(F.V_space, self.U_top, F.top)
+		freestreamV = DirichletBC(F.V_space, Constant((1.0,0)), F.top)
 		# Initialized as zero, equal to the initial velocity field
 		fluidFSI = DirichletBC(F.V_space, F.u_mesh, F.fsi)
 		# Pressure
-		F.bcp = [DirichletBC(F.S_space, Constant(0.0), F.left), \
-					DirichletBC(F.S_space, Constant(0.0), F.right), \
-					DirichletBC(F.S_space, Constant(0.0), F.top)]
+		F.bcp = [DirichletBC(F.S_space, Constant(0.0), F.left), DirichletBC(F.S_space, Constant(0.0), F.right), DirichletBC(F.S_space, Constant(0.0), F.top)]
 
 		# Set up the boundary conditions
 		F.bcu = [noSlipLeft, noSlipRight, freestreamV, fluidFSI]

@@ -15,6 +15,7 @@ from MeshSolver import *
 from fenics import *
 import numpy as np
 import pylab as plt
+import scipy.io
 import math
 
 parameters["allow_extrapolation"] = True
@@ -90,16 +91,23 @@ dofs_s_T = S.T_space.tabulate_dof_coordinates().reshape((S.T_space.dim(),-1))
 
 #Extract dof indices for values on boundary.
 # y = 0.5 if mesh is not deformed.
-i_f_S = np.where((dofs_f_S[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_f_V = np.where((dofs_f_V[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_f_T = np.where((dofs_f_T[:,1] == 0.5))[0] #  & (x <= 0.5)
+i_f_S = np.where((dofs_f_S[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_f_V = np.where((dofs_f_V[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_f_T = np.where((dofs_f_T[:,1] == DC.h))[0] #  & (x <= 0.5)
 
-i_s_S = np.where((dofs_s_S[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_s_V = np.where((dofs_s_V[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_s_T = np.where((dofs_s_T[:,1] == 0.5))[0] #  & (x <= 0.5)
+i_s_S = np.where((dofs_s_S[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_s_V = np.where((dofs_s_V[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_s_T = np.where((dofs_s_T[:,1] == DC.h))[0] #  & (x <= 0.5)
 
-# Extract dof incices for fluid velocity on top plate
-i_f_V_top = np.where((dofs_f_V[:,1] == 2))[0]
+# Extract dof indices for fluid velocity on top plate
+i_f_V_top = np.where((dofs_f_V[:,1] == DC.H))[0]
+
+# Not necessaryily indices at midway point. Take l and u as lower and upper
+i_f_V_mid_l = np.where((dofs_f_V[:,1] >= ((DC.H-DC.h)/2+DC.h)-DC.H/DC.N) & (dofs_f_V[:,1] <= ((DC.H-DC.h)/2+DC.h)))[0]
+
+i_f_V_mid_u = np.where((dofs_f_V[:,1] >= ((DC.H-DC.h)/2+DC.h)) & (dofs_f_V[:,1] <= ((DC.H-DC.h)/2+DC.h+DC.H/DC.N)))[0]
+
+
 
 count = 0
 i_f_d_dot = []
@@ -222,7 +230,19 @@ while DC.t < DC.T + DOLFIN_EPS:
 	DC.Save_Results(S, F)
 
 
+u_u = F.u1.vector()[i_f_V_mid_u]
+u_u_y = u_u[1::2]
+u_l = F.u1.vector()[i_f_V_mid_l]
+u_l_y = u_l[1::2]
+# interpolate between values
 
+d1 = ((DC.H-DC.h)/2+DC.h - dofs_f_V[i_f_V_mid_l][:,1])
+d1 = d1[1::2]
+d2 = dofs_f_V[i_f_V_mid_u][:,1] - dofs_f_V[i_f_V_mid_l][:,1]
+d2 = d2[1::2]
+u_mid = u_u_y + d1/d2*(u_u_y-u_l_y)
+
+scipy.io.savemat('u_mid.mat', mdict={'u_mid':u_mid})
 # F.u1.vector() gives nodal values. Convenient to convert to standard numpy array for further processing. ie
 # F.u1.vector().array()
 # mesh.coordinates() returns Mxd array of coordinates. M is number of vertices and d dimension

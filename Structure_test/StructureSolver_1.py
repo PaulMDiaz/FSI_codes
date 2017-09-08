@@ -1,13 +1,5 @@
 #  Configures variational problem and boundary conditions for the linear elastic structural displacement equations
-#  to solve for the structural displacement and forces and mesh displacement in
-#  a Driven Cavity Flow
-#
-#  Created: 12 May 2015
-#  Modified: 3 June 2015
-#
-#  Inputs:
-#    IOInfo - An object which contains all inputs and outputs for the
-#    Linear Elastic eqution solver implemented herein
+#  to solve for the structural displacement
 
 from dolfin import *
 import numpy as np

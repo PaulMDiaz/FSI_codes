@@ -57,8 +57,8 @@ class Structure_Solver:
 		#self.F = I + grad(self.u)
 		#self.J = det(self.F)
 		#self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
+		self.T_hat = Constant((0.0,0.0))
 
-                self.T_hat = Constant((0.0,0.0))
 
 		print ""
 		print ""
@@ -133,47 +133,42 @@ class Structure_Solver:
 		print "ENTERING STRUCTURE INCOMPRESSIBLE NEOHOOKEAN SOLVER"
 		print ''
 		print ''
-
+		#I = self.d.geometric_dimension()
 		I = Identity(DC.Dim)
-
-		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
+		#self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
 		#	form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
-
 		#self.sigma_FSI = project(0*I, self.T_space, solver_type = "mumps",\
-			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
-
+		#	form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+		parameters["form_compiler"]["cpp_optimize"] = True
+		ffc_options = {"optimize": True,\
+		"eliminate_zeros": True,\
+		"precompute_basis_const": True,\
+		"precompute_ip_const": True}
 		# Kinematics
 		self.F = I + grad(self.d)			# Deformation gradient
 		self.C = self.F.T*self.F			# Right Cauchy-Green tensor
 		self.Ic = tr(self.C)
-
 		# Invariants of deformation tensor
 		self.J = det(self.F)
-
 		# Stored strain energy density
-		self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
-		#self.psi = (DC.mu_s/2)*(self.Ic-3)
-
+		#self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
+		self.psi = (DC.mu_s/2)*(self.Ic-3)
 		#self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-                self.T_hat = Constant((0.0,0.0))
-
-
+		self.T_hat = Constant((0.0,0.0))
 		# Total potential energy
-		self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
-
+		self.Pi = self.psi*self.dV #- dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
+		#self.Pi = self.psi*dx - dot(self.B,self.d)*dx - dot(self.T_hat,self.d)*ds
 		# First directional derivative of Pi about d in the direction of v
 		Form_s = derivative(self.Pi, self.d, self.du)
-
 		# Jacobian of the directional derivative Fd
 		Gain_s = derivative(Form_s, self.d, self.u)
-
 		begin("Computing structure displacement")
 		# Solve variational problem
-		solve(Form_s == 0, self.d, self.bcs, J = Gain_s, \
-			solver_parameters  = {"newton_solver":{"linear_solver" : "mumps", "relative_tolerance" : 1e-3} }, \
-			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+		#solve(Form_s == 0, self.d, self.bcs, J = Gain_s, \
+		#	solver_parameters  = {"newton_solver":{"linear_solver" : "mumps", "relative_tolerance" : 1e-3} }, \
+		#	form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+		solve(Form_s == 0, self.d, self.bcs, J=Gain_s,form_compiler_parameters=ffc_options)
 		end()
-
 		print ""
 		print ""
 		print "EXITING STRUCTURE SOLVER"

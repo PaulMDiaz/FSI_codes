@@ -42,10 +42,10 @@ class Fluid_Solver(object):
 		self.p1 = Function(self.S_space)
 		self.u0 = Function(self.V_space)
 		self.u_mesh = Function(self.V_space)
-		if self.solver == "Chorin":
-			self.us = Function(self.V_space)
-		else:
-			print "Error. The solver for the fluid problem should be set to Chorin"
+		#if self.solver == "Chorin":
+			#self.us = Function(self.V_space)	#not sure what this is for?
+		#else:
+		#	print "Error. The solver for the fluid problem should be set to Chorin"
 
 		self.sigma_FSI = Function(self.T_space) # pressure on interface. a function..
 
@@ -86,37 +86,48 @@ class Fluid_Solver(object):
 		 # temporal term. rate of change of velocity
 		 # convective term (taken out to match paper?)
 		 # diffusive term.
+
+		 # Variational form for step 1: Tentative velocity
+		#F1 = (1/DC.dt)*inner(self.u - self.u0, self.du)*self.dx\
+                    # + inner(grad(self.u0)*(self.u0 - self.u_mesh), self.du)*self.dx\
+                     #+ DC.nu_f*inner(grad(self.u), grad(self.du))*self.dx\
+                     #- inner(self.f, self.du)*self.dx
+		# F1 variational form matches demo except for u_mesh term.
+		# a2 and a3 match perfectly
 		F1 = (1/DC.dt)*inner(self.u - self.u0, self.du)*self.dx\
-                     + inner(grad(self.u0)*(self.u0 - self.u_mesh), self.du)*self.dx\
-                     + DC.nu_f*inner(grad(self.u), grad(self.du))*self.dx\
-                     - inner(self.f, self.du)*self.dx
+                      + inner(grad(self.u0)*(self.u0-self.u_mesh), self.du)*self.dx\
+                      + DC.nu_f*inner(grad(self.u), grad(self.du))*self.dx\
+                      - inner(self.f, self.du)*self.dx
 		self.a1 = lhs(F1)
 		self.L1 = rhs(F1)
 
-		# Pressure update
+		# Step 2: Pressure update
 		self.a2 = inner(grad(self.p), grad(self.dp))*self.dx
-		self.L2 = -(1/DC.dt)*div(self.us)*self.dp*self.dx
+		self.L2 = -(1/DC.dt)*div(self.u1)*self.dp*self.dx #u1 was us... defined with chorin
 
-		# Velocity update
+		# Step 3: Velocity update
 		self.a3 = inner(self.u, self.du)*self.dx
-		self.L3 = inner(self.us, self.du)*self.dx - DC.dt*inner(grad(self.p1), self.du)*self.dx
+		self.L3 = inner(self.u1, self.du)*self.dx - DC.dt*inner(grad(self.p1), self.du)*self.dx #u1 was us... defined with chorin
 
 		# Assemble matrices
 		self.A1 = assemble(self.a1)
 		self.A2 = assemble(self.a2)
 		self.A3 = assemble(self.a3)
 
-		# Assemble RH vectors
-		self.b1 = assemble(self.L1)
-		self.b2 = assemble(self.L2)
-		self.b3 = assemble(self.L3)
-
 		# Define the matrices to solve the system
+
+		# Apply boundary conditions to matrices
+		##[bc.apply(self.A1) for bc in self.bcu]
+		##[bc.apply(self.A2) for bc in self.bcp]
 
 		# Compute tentative velocity step
 		begin("Computing tentative velocity")
+		self.b1 = assemble(self.L1)
 		[bc.apply(self.A1, self.b1) for bc in self.bcu]
-		solve(self.A1, self.us.vector(), self.b1, "gmres", "default")
+		##self.b1 = assemble(self.L1)
+		##[bc.apply(self.b1) for bc in self.bcu]
+		##solve(self.A1, self.u1.vector(), self.b1, "gmres", "default")
+		solve(self.A1, self.u1.vector(), self.b1, "gmres", "ilu")
 		end()
 
 		prec = "amg" if has_krylov_solver_preconditioner("amg") else "default"
@@ -124,14 +135,20 @@ class Fluid_Solver(object):
 
 		# Pressure correction
 		begin("Computing pressure correction")
-		[bc.apply(self.A2, self.b2) for bc in self.bcp]
-		solve(self.A2, self.p1.vector(), self.b2, "gmres", "default")
+		self.b2 = assemble(self.L2)
+		##self.b2 = assemble(self.L2)
+		##[bc.apply(self.b2) for bc in self.bcp]
+		#solve(self.A2, self.p1.vector(), self.b2, "gmres", "default")
+		solve(self.A2, self.p1.vector(), self.b2, "gmres", "ilu")
 		end()
 
 		# Velocity correction
 		begin("Computing velocity correction")
+		self.b3 = assemble(self.L3)
 		[bc.apply(self.A3, self.b3) for bc in self.bcu]
-		solve(self.A3, self.u1.vector(), self.b3, "gmres", "default")
+		##self.b3 = assemble(self.L3)
+		##solve(self.A3, self.u1.vector(), self.b3, "gmres", "default")
+		solve(self.A3, self.u1.vector(), self.b3, "gmres", "ilu")
 		end()
 
 		self.tau = DC.mu_f*(grad(self.u1) + grad(self.u1).T)

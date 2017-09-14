@@ -15,6 +15,7 @@ from MeshSolver import *
 from fenics import *
 import numpy as np
 import pylab as plt
+import scipy.io
 import math
 
 parameters["allow_extrapolation"] = True
@@ -26,7 +27,9 @@ Mesh_Solver = Mesh_Solver()
 
 ############# Fluid Solver Setup section #################
 #  Set the Fluid Element Type
-FluidElementType = "Lagrange"
+#FluidElementType = "Lagrange"
+FluidElementType = 'CG'
+# Lagrange is the same as CG
 
 #  Set the VelocitySpaceDegree
 VelocityElementDegree = 2
@@ -48,7 +51,8 @@ F = Fluid_Solver(DC.mesh_f, FluidElementType,
 ########### Structure Solver Setup section #################
 
 #  Set the Structure Element Type
-StructureElementType = "CG" # CG is equivilent to lagrange.
+#StructureElementType = "CG" # CG is equivilent to lagrange.
+StructureElementType = 'P' # CG is equivilent to lagrange.
 
 #  Set the Structure Element Degree
 StructureElementDegree = 1 # Standard linear lagrange element.
@@ -56,6 +60,7 @@ StructureElementDegree = 1 # Standard linear lagrange element.
 # Set the solver used for the structure problem
 # The options are "Linear" or "NeoHookean" for the structure solver
 StructureSolverMethod = "NeoHookean"
+#StructureSolverMethod = "Linear"
 # Body forces on the structure
 StructureBodyForce = Constant((0.0, 0.0))
 
@@ -86,13 +91,25 @@ dofs_s_T = S.T_space.tabulate_dof_coordinates().reshape((S.T_space.dim(),-1))
 
 #Extract dof indices for values on boundary.
 # y = 0.5 if mesh is not deformed.
-i_f_S = np.where((dofs_f_S[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_f_V = np.where((dofs_f_V[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_f_T = np.where((dofs_f_T[:,1] == 0.5))[0] #  & (x <= 0.5)
+i_f_S = np.where((dofs_f_S[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_f_V = np.where((dofs_f_V[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_f_T = np.where((dofs_f_T[:,1] == DC.h))[0] #  & (x <= 0.5)
 
-i_s_S = np.where((dofs_s_S[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_s_V = np.where((dofs_s_V[:,1] == 0.5))[0] #  & (x <= 0.5)
-i_s_T = np.where((dofs_s_T[:,1] == 0.5))[0] #  & (x <= 0.5)
+i_s_S = np.where((dofs_s_S[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_s_V = np.where((dofs_s_V[:,1] == DC.h))[0] #  & (x <= 0.5)
+i_s_T = np.where((dofs_s_T[:,1] == DC.h))[0] #  & (x <= 0.5)
+
+# Extract dofdofs_f_S indices for fluid velocity on top plate
+i_f_V_top = np.where((dofs_f_V[:,1] == DC.H))[0]
+
+# Not necessaryily indices at midway point. Take l and u as lower and upper
+#i_f_V_mid_l = np.where((dofs_f_V[:,1] >= ((DC.H-DC.h)/2+DC.h)-DC.H/DC.N/2) & (dofs_f_V[:,1] <= ((DC.H-DC.h)/2+DC.h)))[0]
+
+#i_f_V_mid_u = np.where((dofs_f_V[:,1] >= ((DC.H-DC.h)/2+DC.h)) & (dofs_f_V[:,1] <= ((DC.H-DC.h)/2+DC.h+DC.H/DC.N/2)))[0]
+
+#i_f_V_mid_ll = np.where((dofs_f_V[:,0] >= DC.W/2-DC.H/DC.N/2) & (dofs_f_V[:,0] <= DC.W/2)[0]
+
+#i_f_V_mid_uu = np.where((dofs_f_V[:,1] >= ((DC.H-DC.h)/2+DC.h)) & (dofs_f_V[:,1] <= ((DC.H-DC.h)/2+DC.h+DC.H/DC.N/2)))[0]
 
 
 count = 0
@@ -116,7 +133,7 @@ i_f_d_dot = np.asarray(i_f_d_dot)
 # = np.where((dofs_f_V[:,1] - dofs_s_V[:,1] == 0 ) & (dofs_f_V[:,0] - dofs_s_V[:,0] == 0 ))[0]
 #ix = np.isin(dofs_f_V[:,1], dofs_s_V[:,1])
 ################ Iteration section ##############################
-stop = 0*DC.dt
+stop = 200*DC.dt
 #print stop
 
 # Sequentialy staggered iteration scheme
@@ -127,7 +144,7 @@ while DC.t < DC.T + DOLFIN_EPS:
 	#u_FSI = F.u1.vector()[i_f_V]
 	#print "fluid velocity on interface = ", u_FSI
 
-	for ii in range(1): #change to 3 to run properly.
+	for ii in range(3): #change to 3 to run properly.
 		print ''
 		print ''
                 # not sure what time loop iteration number is... how many to converge at given time step?
@@ -137,17 +154,20 @@ while DC.t < DC.T + DOLFIN_EPS:
 		# It is logical to place the fluid solver first because this causes the
 		#structure to deform. However, Placing it last allows the velcities of
 		# mesh, fluid and structure to be compared for the same time step.
-		u_FSI = F.u1.vector()[i_f_V]
+		#u_FSI = F.u1.vector()[i_f_V]
 		#print "fluid velocity on interface = ", u_FSI
 
+		# Solve fluid problem for velocity and pressure
+		F.Fluid_Problem_Solver(DC, S)
+
 		d_FSI  = S.d.vector()[i_s_S]
-		print "structure deflection on interface = ", d_FSI
+		#print "structure deflection on interface prior to structure solve = ", d_FSI
 		# Compute structural displacement and velocity
-		sigma_FSI = F.sigma_FSI.vector()[i_f_T]
+		#sigma_FSI = F.sigma_FSI.vector()[i_f_T]
 
 		S.Structure_Problem_Solver(DC, F)
 		d_FSI  = S.d.vector()[i_s_S]
-		print "structure deflection on interface = ", d_FSI
+		#print "structure deflection on interface after structure solve = ", d_FSI
 
 		sigma_FSI_2 = S.sigma_FSI.vector()[i_s_T]
 		#print 'sigma_FSI_2 = ', sigma_FSI_2
@@ -157,11 +177,13 @@ while DC.t < DC.T + DOLFIN_EPS:
 
 		# Compute velocity mesh
 		Mesh_Solver.Move_Mesh(S, F)
-		# Solve fluid problem for velocity and pressure
-		F.Fluid_Problem_Solver(DC, S)
+
+
+		u_top = F.u1.vector()[i_f_V_top]
+		print "fluid velocity on top plate = ", u_top
 
 	S.d0.assign(S.d) # set current time to previous for displacement
-	F.u0.assign(F.u1)# set current time to previous for velocity. (pressure?)
+	F.u0.assign(F.u1)# set current time to previous for velocity.
 
 	if DC.t == stop:
 		print "Checking interface solutions at time:", stop
@@ -184,9 +206,9 @@ while DC.t < DC.T + DOLFIN_EPS:
 		sigma_FSI = F.sigma_FSI.vector()[i_f_T]
         # structure deflection
 		d_FSI  = S.d.vector()[i_s_S]
-		print "structure deflection on interface = ", d_FSI
+		#print "structure deflection on interface = ", d_FSI
 
-		print "fluid pressure on interface = ", p_FSI
+		#print "fluid pressure on interface = ", p_FSI
 		# fluid mesh velocity
 		u_mesh_FSI = F.u_mesh.vector()[i_f_V]
 		#print "fluid mesh velocity on interface = ", u_mesh_FSI
@@ -210,8 +232,16 @@ while DC.t < DC.T + DOLFIN_EPS:
 	for x in F.mesh.coordinates(): x[:] += DC.dt*F.u_mesh(x)[:]
 	DC.Save_Results(S, F)
 
+# Record y velocity along mid y line. Record x velocity for x  = 0
+u_v = np.column_stack((np.linspace(0.0, DC.W, 101), np.zeros(101)))
+u_u = np.column_stack((np.linspace(DC.h, DC.H, 101), np.zeros(101)))
 
+for i_x in range(len(u_v)):
+	u_v[i_x,1] = F.u1(u_v[i_x,0],(DC.H -DC.h)/2+DC.h)[1]
+	u_u[i_x,1] = F.u1(DC.W/2,u_u[i_x,0])[0]
 
+scipy.io.savemat('u_v.mat', mdict={'u_v':u_v})
+scipy.io.savemat('u_u.mat', mdict={'u_u':u_u})
 # F.u1.vector() gives nodal values. Convenient to convert to standard numpy array for further processing. ie
 # F.u1.vector().array()
 # mesh.coordinates() returns Mxd array of coordinates. M is number of vertices and d dimension

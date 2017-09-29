@@ -2,10 +2,14 @@
 from dolfin import *
 import numpy as np
 import pylab as plt
+from mshr import *
 
 # edit to make similar to chorin that works. Remove pressure BC. Rearrange fluid solver to match. Comment out previous arrangement.
-# breaks after a couple of iterations ' unable to solve linear system using PETSC Krylov solver' solution failed to converge. Look into changing solver.
-# With solver entirely matched the same error takes place. Specifically, in solving the pressure.
+# breaks after a couple of iterations ' unable to solve linear system using PETSC Krylov solver' solution failed to converge.
+# breaks when mesh nodes do not align perfectly with interface. If number of discretizations is selected carefully then the code runs. Evidently
+#this is a working and not elegant or long term solution. Possibly if the mesh deforms the same error will reappear.
+# Therefore mesh still has to be fixed for long term solution such that fluid and structure boundaries align perfectly with mesh nodes.
+
 class DrivenCavity:
 
 	def __init__(self):
@@ -15,15 +19,19 @@ class DrivenCavity:
 		self.nu_s = 0.2	# Structure Poisson coefficient
 		self.E_s = 1e8	# Structure Young modulus (was 1e3)
 		self.rho_f = 1.0	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
+
+		## added to match Abali
+		#self.rho_s = 8.3E-9		# tonne/mm^3
+
 		# Numerical parameters
-		self.dt = 0.05	# Time step
-		self.T = 0.25		#  Set final time for iteration
-		self.N = 64		# Number of discretizations (square mesh)
+		self.dt = 0.1	# Time step
+		self.T = 0.2		#  Set final time for iteration
+		self.N = 64 		# Number of discretizations (square mesh) (place cell edge on FSI)
 
 		# Geometric parameters
-		self.h = 0.1	# Nondimensional structure thickness
-		self.H = 1.1	# Height of entire domain (1.5 for validation, should be 2)
-		self.W = 1.0		# Width of entire domain (1 for validation, should be 2)
+		self.h = 0.5	# Nondimensional structure thickness
+		self.H = 2.0	# Height of entire domain (1.5 for validation, should be 2)
+		self.W = 2.0		# Width of entire domain (1 for validation, should be 2)
 		# Check if N is a multiple of 1/h -> Error check to be included
 
 		# Lame' constants
@@ -40,10 +48,27 @@ class DrivenCavity:
 
 		################ DEFINE MESHES AND DOMAINS #######################
 
-		self.mesh = RectangleMesh(Point(0.0, 0.0), Point(self.W, self.H), self.N, self.N)	# Global mesh
+		# This fixes the issue of nodes falling on the interface.
+		# It makes the subsequent subdomain definitions appear cumbersome.
+		# Perhaps these can be eliminated?
+		# Worried that these domains won't match with mesh and fluid domains once deformation happens...
+
+
+		self.domain = Rectangle(Point(0.0, 0.0), Point(self.W, self.H))
+		self.f_domain = Rectangle(Point(0.0, self.h), Point(self.W, self.H))
+		self.s_domain = Rectangle(Point(0.0, 0.0), Point(self.W, self.h))
+
+
+		self.domain.set_subdomain(1,self.s_domain)
+		#Interface = Line()
+		#self.mesh = RectangleMesh(Point(0.0, 0.0), Point(self.W, self.H), self.N, self.N)	# Global mesh
+		self.mesh = generate_mesh(self.domain, self.N)
+		# maybe use snap_boundary()
 		self.Define_Subdomains()		# Sets the subdomains and the submeshes for fluid and structure
 
 		self.Dim = self.mesh.topology().dim()
+
+
 
 		# Variables to generate files
 		pwd = './Results_Driven_Cavity_FSI/'
@@ -57,38 +82,49 @@ class DrivenCavity:
 		H = self.H
 
 		# Fails to converge: ##
+		#Define tolerance for subdomains. (as in tutorial pg 97)
+		tol = 1E-14
 
 		# Define fluid subdomain of cavity
-		##class Fluid(SubDomain):
+		class Fluid(SubDomain):
 			### Fluid domain is 0 < x < 2.0 and h < y < 2
-			##def inside(self, x, on_boundary):
+			def inside(self, x, on_boundary):
 				###return True if 0.0 <= x[0] <= 2.0 and  h <= x[1] <=  2.0 else False
-			##	return (between(x[0], (0.0, W)) and between(x[1], (h , H)))
+				##return (between(x[0], (0.0, W)) and between(x[1], (h , H)))
+				return True if x[1] >= h - tol else False
 		### Define structure subdomain of cavity
-		##class Structure(SubDomain):
+		class Structure(SubDomain):
 			### Structure domain is 0 < x < 2.0 and 0 < y < h
-		##	def inside(self, x, on_boundary):
-		##		#return True if 0.0 <= x[0] <= 2.0 and 0.0 <= x[1] <=  h else False
-		##		return (between(x[0], (0.0, W)) and between(x[1], (0.0, h)))
+			def inside(self, x, on_boundary):
+				#return True if 0.0 <= x[0] <= 2.0 and 0.0 <= x[1] <=  h else False
+				##return (between(x[0], (0.0, W)) and between(x[1], (0.0, h)))
+				return True if x[1] <= h + tol else False
 
-		# Replace with
-		structure = CompiledSubDomain('x[0] >= 0.0 && x[0] <= W1 && x[1] <= h1', h1 = h, W1 = W)
-		fluid = CompiledSubDomain('x[0] >= 0.0 && x[0] <= W1 && x[1] >= h1 && x[1] <= H1', W1 = W, h1 = h, H1 = H)
+		## Initialize classes for fluid and structure domains
+		fluid = Fluid()
+		structure = Structure()
+
+		#self.mesh.snap_boundary(structure)
+
+
+		## Replace with
+		#structure = CompiledSubDomain('x[0] >= 0.0 && x[0] <= W1 && x[1] <= h1', h1 = h, W1 = W)
+		#fluid = CompiledSubDomain('x[0] >= 0.0 && x[0] <= W1 && x[1] >= h1 && x[1] <= H1', W1 = W, h1 = h, H1 = H)
 
 		### Initialize interior of entire domain
 		### cell function used to mark domains defined by classes above
 		self.subdomains = CellFunction('size_t', self.mesh)
-		self.subdomains.set_all(0) 	# Set entire domain to 0
+		# was CellFunction
+		#self.subdomains.set_all(0) 	# Set entire domain to 0
 
-		### Initialize classes for fluid and structure domains
-		##fluid = Fluid()
-		##structure = Structure()
+
 
 		# Mark fluid and structure domains
-		# fluid.mark(interior, 0)    Already marked as 0
+		fluid.mark(self.subdomains, 0)
 		structure.mark(self.subdomains, 1)
 
 		# Define submeshes for fluid and structure on subdomains
+		# This might be a mistake. Doesn't happen in fenics tutorial pg 100. Try without.
 		self.mesh_f = SubMesh(self.mesh, self.subdomains, 0)
 		self.mesh_s = SubMesh(self.mesh, self.subdomains, 1)
 
@@ -124,6 +160,7 @@ class DrivenCavity:
 				return (2,)
 
 		self.V = VectorFunctionSpace(self.mesh_f, 'P', 2)
+
 		#self.U_top = FSS(degree = 1)	# Top velocity
 		self.U_top = interpolate(FSS(degree = 0), self.V)
 		#self.U_top = Expression(("1" , "0.0"), degree = 0)	# Top velocity
@@ -271,12 +308,12 @@ class DrivenCavity:
 		noSlipRight = DirichletBC(F.V_space, Constant((0.0, 0.0)), F.right)
 		#  Freestream velocity boundary condition for top of cavity
 		# run FSI problem:
-		#freestreamV = DirichletBC(F.V_space, self.U_top, F.top)
+		freestreamV = DirichletBC(F.V_space, self.U_top, F.top)
 		#run comparison to ghia et al
-		freestreamV = DirichletBC(F.V_space, Constant((1.0,0)), F.top)
+		#freestreamV = DirichletBC(F.V_space, Constant((1.0,0)), F.top)
 		# Initialized as zero, equal to the initial velocity field
-		#fluidFSI = DirichletBC(F.V_space, Constant((0, 0)), F.fsi)
-		fluidFSI = DirichletBC(F.V_space, F.u_mesh, F.fsi)
+		fluidFSI = DirichletBC(F.V_space, Constant((0, 0)), F.fsi)
+		#fluidFSI = DirichletBC(F.V_space, F.u_mesh, F.fsi)
 
 		# Pressure
 		#F.bcp = [DirichletBC(F.S_space, Constant(0.0), F.left), DirichletBC(F.S_space, Constant(0.0), F.right), DirichletBC(F.S_space, Constant(0.0), F.top)]

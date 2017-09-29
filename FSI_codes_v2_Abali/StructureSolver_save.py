@@ -12,7 +12,6 @@
 from dolfin import *
 import numpy as np
 
-
 class Structure_Solver:
 	"""Object for FEM structure solver"""
 	def __init__(self, Mesh, ElementType, ElementDegree, StructureSolver, StructureBodyForce):
@@ -93,6 +92,8 @@ class Structure_Solver:
 		print ''
 		print ''
 
+		i,j, k, l, m = indices(5)
+
 		I = Identity(DC.Dim)
 
 		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
@@ -100,19 +101,29 @@ class Structure_Solver:
 
 
 		# Kinematics
-		self.F = I + grad(self.d)			# Deformation gradient
-		self.C = self.F.T*self.F			# Right Cauchy-Green tensor
-		self.Ic = tr(self.C)
+		#self.F = I + grad(self.d)			# Deformation gradient
+		self.F_s = as_tensor(I[k,i] + self.d[k].dx(i)idea,(k,i))			# Deformation gradient
+
+		#self.C = self.F.T*self.F			# Right Cauchy-Green tensor
+		self.C_s = as_tensor( self.F_s[k,i]*self.F_s[k,j],(i,j))
+		self.J_s = det(self.F_s)
+		self.E_s = as_tensor(1./2.*(self.C_s[i, j] - I[i, j]), (i, j) )
+		self.S_s = as_tensor( DC.lam_s*self.E_s[k, k]*I[i, j] + 2.*DC.mu_s*self.E_s[i, j], (i, j))
+		self.P_s = as_tensor( self.F_s[i, j]*self.S_s[k, j], (k, i) )
+
+		self.t_hat = as_tensor( self.J_s*inv(self.F_s)[k, j]*self.sigma_FSO[j, i]*N[k] , (i, ) )
+
+		#self.Ic = tr(self.C)
 
 		# Invariants of deformation tensor
-		self.J = det(self.F)
+		#self.J = det(self.F)
 
 		# Stored strain energy density
-		self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
+		#self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
 
 		#original line
 		#self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		self.T_hat = as_tensor(self.J*inv(self.F)*self.sigma_FSI*self.N)
+		#self.T_hat = as_tensor(self.J*inv(self.F)*self.sigma_FSI*self.N)
 		# print out pressure/ T_hat on interface:
 		# Structure array of coordinates
 		dofs_s_S = self.S_space.tabulate_dof_coordinates().reshape((self.S_space.dim(),-1))
@@ -131,17 +142,20 @@ class Structure_Solver:
 
 		#self.pressure_s = self.T_hat.vector()[i_s_S_FSI]
 
-		print 'Structure sigma_FSI = ', self.sigma_FSI.vector()[i_s_T]
+		#print 'Structure sigma_FSI = ', self.sigma_FSI.vector()[i_s_T]
 		#self.p_test = dot(self.T_hat, self.d)*self.dA(3)
 
 		#print 'pressure_FS =', self.p_test.vector()
 
 		#self.T_hat = Constant((0.0,0.0))
 		# Total potential energy
-		self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
+		#self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
+
+		Form_s = ( rho_s*(u_s-2.*u0_s+u00_s)[i]/(dt*dt)*del_u[i] + P_s[k, i]*del_u[i].dx(k) - rho_s*f[i]*del_u[i] )*dV - \
+				 t_hat[i]*del_u[i]*dA(2)
 
 		# First directional derivative of Pi about d in the direction of v
-		Form_s = derivative(self.Pi, self.d, self.du)
+		#Form_s = derivative(self.Pi, self.d, self.du)
 
 		# Jacobian of the directional derivative Fd
 		Gain_s = derivative(Form_s, self.d, self.u)
@@ -183,8 +197,8 @@ class Structure_Solver:
 		#self.psi = (DC.mu_s/2)*(self.Ic - 3) - DC.mu_s*ln(self.J) + (DC.lambda_s/2)*(ln(self.J))**2
 		self.psi = (DC.mu_s/2)*(self.Ic-3)
 
-		#self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		self.T_hat = Constant((0.0,0.0))
+		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
+		#self.T_hat = Constant((0.0,0.0))
 		# Total potential energy
 		self.Pi = self.psi*self.dV - dot(self.T_hat, self.d)*self.dA(3) - dot(self.B, self.d)*self.dV
 

@@ -16,7 +16,7 @@ file_p_comp = File(pwd + 'p_f.pvd')
 
 # Load mesh from file
 #mesh = UnitSquare(20,20)
-mesh = RectangleMesh(Point(0.0, 0.0), Point(1.0,1.0), 64, 64)
+mesh = RectangleMesh(Point(0.0, 0.0), Point(1.0,1.0), 60, 48)
 # Define function spaces (P2-P1)
 V = VectorFunctionSpace(mesh, "CG", 2)
 Q = FunctionSpace(mesh, "CG", 1)
@@ -73,8 +73,12 @@ A3 = assemble(a3)
 #ufile = File("velocity.pvd")
 
 # Time-stepping
-t = dt
+t = 0.0
 #p = Progress("Time-stepping")
+
+dofs_f_V = V.tabulate_dof_coordinates().reshape((V.dim(),-1))
+i_f_V_top = np.where((dofs_f_V[:,1] == 1.0))[0]
+
 while t < T + DOLFIN_EPS:
     # change from ilu, amg_hypre, ilu to "default"
     # Compute tentative velocity step
@@ -103,6 +107,9 @@ while t < T + DOLFIN_EPS:
 
     # Save to file
     #ufile << u1
+
+    u_top = u1.vector()[i_f_V_top]
+    print "fluid velocity on top plate = ", u_top
 
     # Move to next time step
     u0.assign(u1)

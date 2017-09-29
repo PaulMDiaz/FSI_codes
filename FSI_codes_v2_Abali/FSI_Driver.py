@@ -163,13 +163,24 @@ while DC.t < DC.T + DOLFIN_EPS:
 		d_FSI  = S.d.vector()[i_s_S]
 		#print "structure deflection on interface prior to structure solve = ", d_FSI
 		# Compute structural displacement and velocity
-		#sigma_FSI = F.sigma_FSI.vector()[i_f_T]
+		#
+
+		# try without interaction of any description. Run, same error? Reintroduce interaction when results match.
+		# Print pressure on interface from fluid
+
+		pressure_f = F.p1.vector()[i_f_S]
+		print 'pressure_FSI = ', pressure_f
+
+		# Print stress on interface from fluid
+		sigma_FSI = F.sigma_FSI.vector()[i_f_T]
+		print 'Fluid sigma_FSI = ', sigma_FSI
 
 		S.Structure_Problem_Solver(DC, F)
-		d_FSI  = S.d.vector()[i_s_S]
+
+		#d_FSI  = S.d.vector()[i_s_S]
 		#print "structure deflection on interface after structure solve = ", d_FSI
 
-		sigma_FSI_2 = S.sigma_FSI.vector()[i_s_T]
+		###sigma_FSI_2 = S.sigma_FSI.vector()[i_s_T]
 		#print 'sigma_FSI_2 = ', sigma_FSI_2
 
 		#sigma_FSI = S.sigma_FSI.vector()[i_f_T]
@@ -179,8 +190,11 @@ while DC.t < DC.T + DOLFIN_EPS:
 		Mesh_Solver.Move_Mesh(S, F)
 
 
-		u_top = F.u1.vector()[i_f_V_top]
-		print "fluid velocity on top plate = ", u_top
+		#u_top = F.u1.vector()[i_f_V_top]
+		#print "fluid velocity on top plate = ", u_top
+
+		#u_FSI = F.u1.vector()[i_f_V_FSI]
+		#print "fluid velocity on FSI = ", u_FSI
 
 	S.d0.assign(S.d) # set current time to previous for displacement
 	F.u0.assign(F.u1)# set current time to previous for velocity.
@@ -190,9 +204,6 @@ while DC.t < DC.T + DOLFIN_EPS:
 
 		# Fluid velocity, pressure and stress
 		u_FSI = F.u1.vector()[i_f_V]
-        #u_FSI = F.v_.vector()[i_f_V]
-		# F.u1.vector().array()
-		#F.u1.vector().array().shape
 
 		# Concatenate dofs_f_V and F.u1.vector.array()
 		u_map = np.concatenate((F.u1.vector().array().reshape(dofs_f_V.shape[0],1), dofs_f_V), axis = 1)
@@ -201,7 +212,7 @@ while DC.t < DC.T + DOLFIN_EPS:
 		d_dot_FSI = S.d_dot.vector()[i_s_V]
 
 		p_FSI = F.p1.vector()[i_f_S]
-        #p_FSI = F.p_.vector()[i_f_S]
+
 		#print "FSI pressure = ", p_FSI
 		sigma_FSI = F.sigma_FSI.vector()[i_f_T]
         # structure deflection
@@ -212,9 +223,6 @@ while DC.t < DC.T + DOLFIN_EPS:
 		# fluid mesh velocity
 		u_mesh_FSI = F.u_mesh.vector()[i_f_V]
 		#print "fluid mesh velocity on interface = ", u_mesh_FSI
-
-		#/Library/Frameworks/Python.framework/Versions/2.7/bin/python
-#engr2-1-11-24-edu:FSI_codes_v2_Abali felixnewberry$
 
         # check this indentation is correct.
         # can print mesh velocity... what about displacement? Or structure velocity. Something to compare.

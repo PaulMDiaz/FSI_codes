@@ -36,7 +36,7 @@ load('u_v_chorin.mat')
 x = u_v(:,1); 
 v_sim = u_v(:,2); 
 
-y = u_u(:,1)-0.5;
+y = u_u(:,1)-0.2;
 u_sim = u_u(:,2); 
 
 x_c = u_v_chorin(:,1); 
@@ -49,7 +49,7 @@ figure
 subplot(2,1,1)
 hold on
 p1 = plot(u_sim, y, 'c-', 'LineWidth', 2);
-p2 = plot(u_sim_c, y_c, 'k-', 'LineWidth', 2);
+p2 = plot(u_sim_c, y_c, 'k-', 'LineWidth', 1);
 p3 = plot(u_ghia_100, y_ghia,'ro', 'LineWidth', 2);
 xlabel('u velocity', 'interpreter', 'latex', 'fontsize', 20)
 ylabel('y', 'interpreter', 'latex', 'fontsize', 20)
@@ -59,7 +59,7 @@ hold off
 subplot(2,1,2)
 hold on
 plot(x,v_sim, 'c-', 'LineWidth', 2)
-plot(x_c,v_sim_c, 'k-', 'LineWidth', 2)
+plot(x_c,v_sim_c, 'k-', 'LineWidth', 1)
 plot(x_ghia, v_ghia_100,'ro', 'LineWidth', 2)
 xlabel('x', 'interpreter', 'latex', 'fontsize', 20)
 ylabel('v velocity', 'interpreter', 'latex', 'fontsize', 20)

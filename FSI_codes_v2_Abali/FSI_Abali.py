@@ -8,7 +8,6 @@ ylength = 150.0	# in mm
 
 mesh = RectangleMesh(Point(0.0, 0.0), Point(31*xlength, 1.5*ylength) , 31*2,15*2)
 
-
 Dim = mesh.topology().dim()
 
 structure = CompiledSubDomain('x[0] >= 15.0*xl && x[0] <= 16.0*xl && x[1] <= yl', xl = xlength, yl = ylength)
@@ -105,7 +104,7 @@ def s_solve(u0, u00, sigma_f, t):
 	del_u = TestFunction(V_s_space)
 	du = TrialFunction(V_s_space)
 
-	F_s = as_tensor( u_s[k].dx(i) + delta[k, i], (k, i) )
+	F_s = as_tensor( u_s[k].dx(i)idea + delta[k, i], (k, i) )
 	J_s = det(F_s)
 
 	C_s = as_tensor( F_s[k, i]*F_s[k, j], (i, j) )

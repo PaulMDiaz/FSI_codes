@@ -32,7 +32,7 @@ class Fluid_Solver(object):
 		self.V_space = VectorFunctionSpace(self.mesh, self.ElementType, self.VelocityElementDegree)
 		self.T_space = TensorFunctionSpace(self.mesh, self.ElementType, self.VelocityElementDegree)
 
-		## Functions for results, where do these come into it? why different from u1 and p1...
+		## Functions for results
 		self.v_ = Function(self.V_space, name = 'u')
 		self.p_ = Function(self.S_space, name = 'p')
                 # called only for saving results... weird...
@@ -153,7 +153,7 @@ class Fluid_Solver(object):
 
 		self.tau = DC.mu_f*(grad(self.u1) + grad(self.u1).T)
 
-                #sigma_FSI stress at boundary
+        # sigma_FSI stress at boundary
 		self.sigma_FSI = project(-self.p1*I + self.tau, self.T_space, solver_type = "mumps", \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 

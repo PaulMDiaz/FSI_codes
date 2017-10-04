@@ -25,10 +25,17 @@ V = VectorFunctionSpace(mesh, 'P', 1)
 # Define boundary condition
 tol = 1E-14
 
-def clamped_boundary(x, on_boundary):
+def clamped_boundary_left(x, on_boundary):
     return on_boundary and x[0] < tol
 
-bc = DirichletBC(V, Constant((0, 0)), clamped_boundary)
+def clamped_boundary_right(x, on_boundary):
+    return on_boundary and x[0] > W - tol
+
+bc_left = DirichletBC(V, Constant((0, 0)), clamped_boundary_left)
+
+bc_right = DirichletBC(V, Constant((0, 0)), clamped_boundary_right)
+
+bcs = [bc_left, bc_right]
 
 # Define strain and stress
 
@@ -50,7 +57,7 @@ L = dot(f, v)*dx + dot(T, v)*ds
 
 # Compute solution
 u = Function(V)
-solve(a == L, u, bc)
+solve(a == L, u, bcs)
 
 # Plot solution
 plot(u, title='Displacement', mode='displacement')

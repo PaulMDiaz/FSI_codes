@@ -16,7 +16,7 @@ class DrivenCavity:
         ############## INPUT DATA PARAMETERS ###################
 	    # Physical parameters
 		self.nu_f = 0.01	# Fluid viscosity (was 0.2)
-		self.nu_s = 0.2	# Structure Poisson coefficient
+		self.nu_s = 0.4999	# Structure Poisson coefficient should be 0.2
 		self.E_s = 1e8	# Structure Young modulus (was 1e3)
 		self.rho_f = 1.0	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 
@@ -25,7 +25,7 @@ class DrivenCavity:
 
 		# Numerical parameters
 		self.dt = 0.1	# Time step
-		self.T = 0.2		#  Set final time for iteration
+		self.T = 0.1		#  Set final time for iteration
 		self.N = 64 		# Number of discretizations (square mesh) (place cell edge on FSI)
 
 		# Geometric parameters
@@ -35,9 +35,12 @@ class DrivenCavity:
 		# Check if N is a multiple of 1/h -> Error check to be included
 
 		# Lame' constants
-		self.mu_s = 2.0 #self.E_s/(2.0*(1.0 + self.nu_s))
+		#self.mu_s = 2.0 #self.E_s/(2.0*(1.0 + self.nu_s))
+		self.mu_s = Constant(self.E_s/(2.0*(1.0 + self.nu_s)))
 		self.lambda_s = self.E_s*self.nu_s/((1.0 + self.nu_s)*(1.0 - 2.0*self.nu_s))
-		self.lambda_s_2 = 2.7*10**2  # non-zero for compressible structures?
+
+		#self.lambda_s_2 = 2.7*10**2  # non-zero for compressible structures?
+
 		self.mu_f = self.rho_f*self.nu_f
 
 		# Set up a variable for time
@@ -57,7 +60,6 @@ class DrivenCavity:
 		self.domain = Rectangle(Point(0.0, 0.0), Point(self.W, self.H))
 		self.f_domain = Rectangle(Point(0.0, self.h), Point(self.W, self.H))
 		self.s_domain = Rectangle(Point(0.0, 0.0), Point(self.W, self.h))
-
 
 		self.domain.set_subdomain(1,self.s_domain)
 		#Interface = Line()

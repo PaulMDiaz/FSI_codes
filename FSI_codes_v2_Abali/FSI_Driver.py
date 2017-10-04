@@ -52,7 +52,7 @@ F = Fluid_Solver(DC.mesh_f, FluidElementType,
 
 #  Set the Structure Element Type
 #StructureElementType = "CG" # CG is equivilent to lagrange.
-StructureElementType = 'P' # CG is equivilent to lagrange.
+StructureElementType = "Lagrange" # CG is equivilent to lagrange.
 
 #  Set the Structure Element Degree
 StructureElementDegree = 1 # Standard linear lagrange element.
@@ -177,8 +177,8 @@ while DC.t < DC.T + DOLFIN_EPS:
 
 		S.Structure_Problem_Solver(DC, F)
 
-		#d_FSI  = S.d.vector()[i_s_S]
-		#print "structure deflection on interface after structure solve = ", d_FSI
+		d_FSI  = S.d.vector()[i_s_S]
+		print "structure deflection on interface after structure solve = ", d_FSI
 
 		###sigma_FSI_2 = S.sigma_FSI.vector()[i_s_T]
 		#print 'sigma_FSI_2 = ', sigma_FSI_2

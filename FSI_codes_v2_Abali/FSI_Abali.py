@@ -64,7 +64,7 @@ SV_f_space = FunctionSpace(mesh_f, SV_f)
 
 t = 0.0		# in s
 dt = 0.01	# in s
-t_end = 5	# in s 5 with dt 0.01
+t_end = 0.02	# in s 5 with dt 0.01
 
 pwd = './FSI_Code_Abali/'
 
@@ -104,7 +104,7 @@ def s_solve(u0, u00, sigma_f, t):
 	del_u = TestFunction(V_s_space)
 	du = TrialFunction(V_s_space)
 
-	F_s = as_tensor( u_s[k].dx(i)idea + delta[k, i], (k, i) )
+	F_s = as_tensor( u_s[k].dx(i) + delta[k, i], (k, i) )
 	J_s = det(F_s)
 
 	C_s = as_tensor( F_s[k, i]*F_s[k, j], (i, j) )

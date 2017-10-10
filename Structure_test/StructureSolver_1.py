@@ -35,7 +35,7 @@ class Structure_Solver:
 		if self.solver == "Linear":
 			self.Linear_Elastic_Solver(DC, F)
 		elif self.solver == "NeoHookean":
-			self.Incompressible_NeoHookean_Solver(DC, F)
+			self.Compressible_NeoHookean_Solver(DC, F)
 		else:
 			print "Error. The only solvers available for the structure are Linear or NeoHookean"
 

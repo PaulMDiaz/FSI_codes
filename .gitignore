@@ -1,10 +1,6 @@
-./Results_Driven_Cavity_FSI/
 ./FSI_Code_Abali/
-.DS_Store
-./FSI_codes_v1/.DS_Store
 ./FSI_codes_v2_Abali/FSI_Code_Abali/
 ./FSI_codes_v2_Abali/Results_Driven_Cavity_FSI/
-./FSI_codes_v2_Abali/.DS_Store
-./FSI_codes_Abali/.DS_Store
-./Structure_test/.DS_Store
 *.pyc
+*.vtu
+*.DS_Store

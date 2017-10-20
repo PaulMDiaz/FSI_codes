@@ -166,6 +166,14 @@ while DC.t < DC.T + DOLFIN_EPS:
 
 		S.Structure_Problem_Solver(DC, F)
 
+		## Save Sigma_FSI for use in other codes
+		nodal_F_sigmaFSI = F.sigma_FSI.vector().array()
+		np.savetxt('nodal_F_sigmaFSI', nodal_F_sigmaFSI)
+
+		nodal_S_sigmaFSI = S.sigma_FSI.vector().array()
+		np.savetxt('nodal_S_sigmaFSI', nodal_S_sigmaFSI)
+
+
 		if DC.t >= 2*DC.dt or ii >= 2:
 			u_M_FSI_1 = F.u_mesh.vector()[i_f_V]
 			u_M_FSI_2 = F.u_mesh.vector()[i_f_scomp]
@@ -187,7 +195,7 @@ while DC.t < DC.T + DOLFIN_EPS:
 
 	S.d0.assign(S.d) # set current time to previous for displacement
 	F.u0.assign(F.u1)# set current time to previous for velocity.
-	S.d00_s.assign(S.d0)
+	#S.d00_s.assign(S.d0)
 
 	for x in F.mesh.coordinates(): x[:] += DC.dt*F.u_mesh(x)[:]
 	DC.Save_Results(S, F)

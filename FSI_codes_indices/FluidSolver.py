@@ -17,7 +17,7 @@ import pylab as plt
 
 class Fluid_Solver(object):
 	"""docstring for ClassName"""
-	def __init__(self, Mesh, ElementType, VelocityElementDegree, PressureElementDegree, FluidSolverMethod, FluidBodyForce):
+	def __init__(self, Mesh, ElementType, VelocityElementDegree, PressureElementDegree, FluidSolverMethod, FluidBodyForce, N, W):
 
 		# Initialize mesh and solver parameters
 		self.mesh = Mesh
@@ -30,7 +30,7 @@ class Fluid_Solver(object):
 		# Variational spaces
 		self.S_space = FunctionSpace(self.mesh, self.ElementType, self.PressureElementDegree)
 		self.V_space = VectorFunctionSpace(self.mesh, self.ElementType, self.VelocityElementDegree)
-		self.T_space = TensorFunctionSpace(self.mesh, self.ElementType, self.VelocityElementDegree)
+		self.T_space = TensorFunctionSpace(self.mesh, self.ElementType, self.PressureElementDegree)
 
 		## Functions for results
 		self.v_ = Function(self.V_space, name = 'u')
@@ -59,6 +59,13 @@ class Fluid_Solver(object):
 		self.del_u_mesh = TestFunction(self.V_space)
 		self.du_mesh = TrialFunction(self.V_space)
 
+
+		#self.mesh_fsi = IntervalMesh(N,0.0,W)
+		#self.T_fsi = TensorFunctionSpace(self.mesh_fsi,self.ElementType, self.VelocityElementDegree)
+		#self.sigma_f_FSI = Function(self.T_fsi)
+
+		#self.dofs_f_FSI = self.T_fsi.tabulate_dof_coordinates().reshape((self.T_fsi.dim(),-1))
+		#dofs_f_FSI = F.T_fsi.tabulate_dof_coordinates().reshape((F.T_fsi.dim(),-1))
 
 	def Fluid_Problem_Solver(self, DC, S):
 
@@ -144,9 +151,15 @@ class Fluid_Solver(object):
 
 		self.tau = DC.mu_f*(grad(self.u1) + grad(self.u1).T)
 
-        # sigma_FSI stress at boundary
+        # sigma_FSI stress over entire fluid tensor space
 		self.sigma_FSI = project(-self.p1*I + self.tau, self.T_space, solver_type = "mumps", \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+
+		#self.dofs_f_T = self.T_space.tabulate_dof_coordinates().reshape((self.T_space.dim(),-1))
+		#self.i_f_T = np.where((self.dofs_f_T[:,1] == DC.h))[0] #  & (x <= 0.5)
+		#self.nodal_F_sigmaFSI = self.sigma_FSI.vector()[self.i_f_T]
+
+		#self.sigma_f_FSI.vector()[:] = self.nodal_F_sigmaFSI
 
 		print ""
 		print ""

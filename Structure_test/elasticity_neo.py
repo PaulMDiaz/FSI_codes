@@ -16,7 +16,7 @@ from mshr import *
 # Scaled variables
 W = 2; h = 0.5; H = 2;
 nu_s = 0.3              # Poisson's ration
-E = 6E6                 # Elastic modulus
+E = 6E3                # Elastic modulus
 rho_s = 1
 
 
@@ -118,23 +118,23 @@ d_geo = u.geometric_dimension()  # space dimension
 
 # load sigma from fsi problem, project onto structure.
 # loaded sigma that has already been projected...
-nodal_sigma = np.loadtxt('nodal_sigma', dtype = float)
+#nodal_sigma = np.loadtxt('nodal_sigma', dtype = float)
 
-T_space = TensorFunctionSpace(mesh_s, 'P', 1)
-dofs_s_T = T_space.tabulate_dof_coordinates().reshape((T_space.dim(),-1))
-i_s_T = np.where((dofs_s_T[:,1] == h))[0]
+#T_space = TensorFunctionSpace(mesh_s, 'P', 1)
+#dofs_s_T = T_space.tabulate_dof_coordinates().reshape((T_space.dim(),-1))
+#i_s_T = np.where((dofs_s_T[:,1] == h))[0]
 
-sigma_FSI = Function(T_space)
-sigma_FSI.vector()[:] = nodal_sigma
+#sigma_FSI = Function(T_space)
+#sigma_FSI.vector()[:] = nodal_sigma
 
 # should check this...
 #sigma_FSI_1 = project(sigma_FSI, T_space, solver_type = "mumps",\
 #    form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
-dofs_s_V = V.tabulate_dof_coordinates().reshape((V.dim(),-1))
-i_s_V_L = np.where((dofs_s_V[:,0] == 0))[0]
-i_s_V_R = np.where((dofs_s_V[:,0] == W))[0]
-i_s_V_B = np.where((dofs_s_V[:,1] == 0))[0]
+#dofs_s_V = V.tabulate_dof_coordinates().reshape((V.dim(),-1))
+#i_s_V_L = np.where((dofs_s_V[:,0] == 0))[0]
+#i_s_V_R = np.where((dofs_s_V[:,0] == W))[0]
+#i_s_V_B = np.where((dofs_s_V[:,1] == 0))[0]
 
 # NeoHookean solver:
 
@@ -154,13 +154,12 @@ n = FacetNormal(mesh_s)
 #T = dot(sigma_FSI, n)
 
 #F = I + grad(u)
-T = J*inv(F)*sigma_FSI*n
+#T = J*inv(F)*sigma_FSI*n
 #T = dot(T_1, n)
 
 #T = J*sigma_FSI*inv(F).T
 
 #T = Constant((-1, 0))      # Traction sigma.n
-#T = Expression(('0','x[0]*(x[0]-W)'), W = W, degree = 1)
 
 # Total potential energy
 Pi = psi*dx-dot(T, u)*dA(3) - dot(B, u)*dx
@@ -183,15 +182,32 @@ S_s = as_tensor( lambda_s*E_s[k, k]*delta[i, j] + 2.*mu_s*E_s[i, j], (i, j))
 #S_s = as_tensor( lambda_s*E[k, k]*delta[i, j] + 2.*mu_s*E[i, j], (i, j))
 P_s = as_tensor( F_s[i, j]*S_s[k, j], (k, i) )
 
-t_hat = as_tensor( J_s*inv(F_s)[k, j]*sigma_FSI[j, i]*n[k] , (i, ) )
+#t_hat = as_tensor( J_s*inv(F_s)[k, j]*sigma_FSI[j, i]*n[k] , (i, ) )
 
+class u_mesh_1(Expression):
+    def eval(self,values, x):
+        #between(x[0], (0.0, H)) and near(x[1], 2):
+        # one values for symmetric sin, one for asymettric
+        values[1] = 0.2*sin(2*pi*x[0]/W)
+        #values[1] = (1+0.2*x[0])*0.05*sin(pi*x[0])
+        values[0] = 0.0
+    def value_shape(self):
+        return (2,)
+
+#u_mesh_boundary = interpolate(u_mesh_1(degree = 0), V)
+
+
+
+t_hat = Expression(('0','C*x[0]*(x[0]-W)'), W = W, degree = 1, C = 10000)
+t_hat = Expression(('0','C*sin(2*pi*x[0]/W)'), W = W, degree = 1, C = 1000)
 
 Form_s = ( rho_s*(u-2.*u0_s+u00_s)[i]/(dt*dt)*v[i] + P_s[k, i]*v[i].dx(k) - rho_s*f[i]*v[i] )*dV - \
          t_hat[i]*v[i]*dA(3)
 
 #Form_s = derivative(P_s, u, v)
+
 # Jacobian of the directional derivative Fd
-#Gain_s = derivative(Form_s, u, du)
+Gain_s = derivative(Form_s, u, du)
 
 begin("Computing structure displacement")
 

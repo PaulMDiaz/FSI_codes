@@ -245,6 +245,8 @@ class DrivenCavity:
 
 		S.N = FacetNormal(S.mesh)
 
+		# Natural (homogenous) Neumann boundary conditions are the default in Dolfin.
+
 		#  BCs for the left side (no displacement)
 		LeftBC = DirichletBC(S.V_space, Constant((0.0, 0.0)), S.left)
 

@@ -26,7 +26,7 @@ class DrivenCavity:
 	    # Physical parameters
 		self.nu_f = 0.2	# Fluid viscosity (was 0.2)
 		self.nu_s = 0.2	# Structure Poisson coefficient should be 0.2
-		self.E_s = 1e5	# Structure Young modulus (was 1e3)
+		self.E_s = 1e3	# Structure Young modulus (was 1e3)
 		self.rho_f = 1.0	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 		self.rho_s = 1.0
 
@@ -34,7 +34,7 @@ class DrivenCavity:
 
 		# Numerical parameters
 		self.dt = 0.01	# Time step
-		self.T = 0.2	#  Set final time for iteration
+		self.T = 0.03	#  Set final time for iteration
 		self.N = 64		# Number of discretizations (square mesh) (place cell edge on FSI)
 
 		# Geometric parameters

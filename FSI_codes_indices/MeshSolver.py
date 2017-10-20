@@ -24,12 +24,12 @@ class Mesh_Solver:
 		print ''
 
 		# artificial viscosity
-		a = 1.0e-11		# MPa/s
+		a = 1.0e-8		# MPa/s was e-11
 		bc_m = [DirichletBC(F.V_space, S.d_dot, F.facets, 3)]
 		Form_m = a*sym(grad(F.u_mesh))[i, j]*F.del_u_mesh[i].dx(j)*F.dx
 		Gain_m = derivative(Form_m, F.u_mesh, F.du_mesh)
 
-		solve(Form_m == 0, F.u_mesh, bc_m, J = Gain_m, 
+		solve(Form_m == 0, F.u_mesh, bc_m, J = Gain_m,
 			solver_parameters = {"newton_solver":{"linear_solver" : "mumps", "relative_tolerance" : 1e-3} }, \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 

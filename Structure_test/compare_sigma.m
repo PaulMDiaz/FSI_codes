@@ -1,0 +1,61 @@
+clear all
+close all
+clc
+
+load nodal_F_sigmaFSI
+
+load F_sigmaFSI_coords
+
+x_F = F_sigmaFSI_coords(:,1); 
+
+load nodal_S_sigmaFSI
+
+load S_sigmaFSI_coords
+x_S = S_sigmaFSI_coords(:,1); 
+
+% Plot one against the other
+
+% figure
+% hold on
+% plot(x_F, nodal_F_sigmaFSI,'xk','Markersize',5)
+% plot(x_S, nodal_S_sigmaFSI,'or','Markersize',5)
+% hold off
+
+load u_mesh_FSI0
+u_m_x0 = u_mesh_FSI0(1:2:end);
+u_m_y0 = u_mesh_FSI0(2:2:end);
+
+load u_mesh_FSI1
+u_m_x1 = u_mesh_FSI1(1:2:end);
+u_m_y1 = u_mesh_FSI1(2:2:end);
+
+load nodal_M_coords
+M_x = nodal_M_coords(1:2:end,1);
+
+
+
+load u_base
+u_b = u_base(2:2:end); 
+load u_base_coords
+u_x = u_base_coords(1:2:end,1);
+
+u_mat = [u_x, u_b];
+u_mat = sortrows(u_mat,1);
+
+load u_mesh_a_incomp
+u_x_a_incomp = u_mesh_a_incomp(2:2:end); 
+u_comp_mat = [u_x, u_x_a_incomp];
+u_comp_mat = sortrows(u_comp_mat, 1); 
+
+figure 
+% plot(M_x,u_m_y0, 'x')
+% hold on
+% plot(M_x,u_m_y0, 'xr')
+plot(M_x,u_x_a_incomp, 'xr')
+
+M_mat = [M_x, u_m_y0];
+M_mat = sortrows(M_mat,1);
+
+trapz(M_mat(:,1),M_mat(:,2))
+trapz(u_mat(:,1),u_mat(:,2))
+trapz(u_comp_mat(:,1),u_comp_mat(:,2))

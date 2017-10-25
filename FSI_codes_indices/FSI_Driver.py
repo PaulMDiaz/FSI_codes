@@ -1,4 +1,4 @@
-#  Serves as the Driver for FSI analysis of Cavity
+exit#  Serves as the Driver for FSI analysis of Cavity
 #  Driven Flow with a bottom non-rigid wall
 #
 #  Created: 26 February 2014
@@ -23,6 +23,7 @@ set_log_level(ERROR)
 
 #  Create Object with Driven Cavity expressions, mesh and subdomains
 DC = DrivenCavity()
+
 Mesh_Solver = Mesh_Solver()
 
 ############# Fluid Solver Setup section #################
@@ -45,8 +46,7 @@ FluidSolverMethod = "Chorin"
 FluidBodyForce = Constant((0.0,0.0))
 
 #  Set the equations for the variational solver and boundary conditions and create fluid solver object
-F = Fluid_Solver(DC.mesh_f, FluidElementType,
-		VelocityElementDegree, PressureElementDegree, FluidSolverMethod, FluidBodyForce)
+F = Fluid_Solver(DC.mesh_f, FluidElementType, VelocityElementDegree, PressureElementDegree, FluidSolverMethod, FluidBodyForce, DC.N, DC.W)
 
 ########### Structure Solver Setup section #################
 
@@ -66,7 +66,7 @@ StructureBodyForce = Constant((0.0, 0.0))
 
 # Set the equations for the variational solver and boundary conditions and creat structure solver object
 S = Structure_Solver(DC.mesh_s, StructureElementType,
-	StructureElementDegree, StructureSolverMethod, StructureBodyForce)
+	StructureElementDegree, StructureSolverMethod, StructureBodyForce,DC)
 
 # Define boundary conditions on subdomains (fluid and structure) but traction from fluid on the structure which
 # will be included after computing the fluid.
@@ -156,6 +156,8 @@ while DC.t < DC.T + DOLFIN_EPS:
 
 		# Print stress on interface from fluid
 		sigma_FSI = F.sigma_FSI.vector()[i_f_T]
+
+
 		#print 'Fluid sigma_FSI = ', sigma_FSI
 
 		# Structure velocity of previous time step should match fluid velcity. Maybe.
@@ -166,12 +168,36 @@ while DC.t < DC.T + DOLFIN_EPS:
 
 		S.Structure_Problem_Solver(DC, F)
 
+		nodal_S_sigmaFSI = S.sigma_FSI.vector()[i_s_T]
+		np.savetxt('nodal_S_sigmaFSI', nodal_S_sigmaFSI)
+
+		#nodal_S_sigma = S.sigma_FSI.vector().array()
+		#np.savetxt('nodal_S_sigma', nodal_S_sigma)
+
+		#nodal_F_sigma = F.sigma_FSI.vector().array()
+		#np.savetxt('nodal_F_sigma', nodal_F_sigma)
+
+		S_sigmaFSI_coords = dofs_s_T[i_s_T]
+		np.savetxt('S_sigmaFSI_coords', S_sigmaFSI_coords)
+
+		nodal_F_sigmaFSI = F.sigma_FSI.vector()[i_f_T]
+		np.savetxt('nodal_F_sigmaFSI', nodal_F_sigmaFSI)
+
+		F_sigmaFSI_coords = dofs_f_T[i_f_T]
+		np.savetxt('F_sigmaFSI_coords', F_sigmaFSI_coords)
+
 		if DC.t >= 2*DC.dt or ii >= 2:
 			u_M_FSI_1 = F.u_mesh.vector()[i_f_V]
 			u_M_FSI_2 = F.u_mesh.vector()[i_f_scomp]
 
 		# Compute velocity mesh
 		Mesh_Solver.Move_Mesh(S, F)
+
+		nodal_M_u = F.u_mesh.vector().array()
+		np.savetxt('nodal_M_a_incomp', nodal_M_u)
+
+		nodal_M_coords = dofs_f_V[i_f_V]
+		np.savetxt('nodal_M_coords', nodal_M_coords)
 
 		# Mesh displacement on interface.
 

@@ -15,7 +15,7 @@ import numpy as np
 
 class Structure_Solver:
 	"""Object for FEM structure solver"""
-	def __init__(self, Mesh, ElementType, ElementDegree, StructureSolver, StructureBodyForce):
+	def __init__(self, Mesh, ElementType, ElementDegree, StructureSolver, StructureBodyForce, DC):
 
 		# Initialize mesh and FEM solver parameter
 		self.mesh = Mesh # static mesh
@@ -29,6 +29,7 @@ class Structure_Solver:
 		self.V_space = VectorFunctionSpace(self.mesh, self.ElementType, self.ElementDegree)
 		self.T_space = TensorFunctionSpace(self.mesh, self.ElementType, self.ElementDegree)
 
+
 		# Function for results
 		self.d_ = Function(self.V_space, name = 'd')
 
@@ -37,6 +38,12 @@ class Structure_Solver:
 		self.d0 = Function(self.V_space)
 		self.u = TrialFunction(self.V_space)
 		self.du = TestFunction(self.V_space)
+
+		## Mesh, tensor functionspace and function for fsi
+		#self.mesh_fsi = IntervalMesh(DC.N,0.0,DC.W)
+		#self.T_fsi = TensorFunctionSpace(self.mesh_fsi,self.ElementType, self.ElementDegree)
+		#self.sigma_s_FSI = Function(self.T_fsi)
+
 ###########################
 		self.d00_s = Function(self.V_space)
 ###########################
@@ -45,8 +52,8 @@ class Structure_Solver:
 		if self.solver == "Linear":
 			self.Linear_Elastic_Solver(DC, F)
 		elif self.solver == "NeoHookean":
-			#self.Incompressible_NeoHookean_Solver(DC, F)
-			self.Compressible_NeoHookean_Solver(DC, F)
+			self.Incompressible_NeoHookean_Solver(DC, F)
+			#self.Compressible_NeoHookean_Solver(DC, F)
 		else:
 			print "Error. The only solvers available for the structure are Linear or NeoHookean"
 
@@ -56,6 +63,8 @@ class Structure_Solver:
 	def Linear_Elastic_Solver(self, DC, F):
 
 		# project fluid stress onto structure tensor space.
+		# don't know that this succeeds.
+
 		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
@@ -113,9 +122,10 @@ class Structure_Solver:
 		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
+		#project seems wrong when values on boundary are printed...
 
 		# Kinematics
-		self.F = I + grad(self.d)			# Deformation gradient
+		self.F = I + grad(self.d)			# Deformation gradient tensor
 		self.C = self.F.T*self.F			# Right Cauchy-Green tensor
 
 		# Invariants of deformation tensor
@@ -134,16 +144,25 @@ class Structure_Solver:
 		# (first piola kirchoff stress tensor, also called called lagrangian stress tensor)
 		#self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
 
-		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
+		#self.T_fat = self.J*inv(self.F)*self.sigma_FSI*self.N
+		self.n_f = FacetNormal(F.mesh)
 
-		#self.n = FacetNormal(self.mesh)
+		self.T_hat = -self.J*inv(self.F)*F.sigma_FSI*self.N
+		self.T_fat = -dot(self.J*F.sigma_FSI*inv(self.F).T,self.n_f)
+		#self.T_fat = -self.J*F.sigma_FSI*inv(self.F).T*self.n_f
+
+
+		self.T_fat_2 = project(self.T_fat, self.V_space, solver_type = "mumps",\
+			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+
+		#self.n = FaceTtNormal(self.mesh)
 		#self.T_hat = dot(self.sigma_FSI, self.n)
 		#self.T_fat = dot(dot(self.J*inv(self.F),self.sigma_FSI), self.n)
 
 		#n = FacetNormal(self.mesh)
 		#self.T_hat = dot(self.sigma_FSI, n)
 
-		#self.T_hat = Constant((0.0,0.0))
+		self.T_hat = Constant((0.0,0.0))
 
 		# Total potential energy
 		# dA(3) integrate on interface only or perhaps wrong form...
@@ -160,12 +179,12 @@ class Structure_Solver:
 		# Alternative using code from Abali. Don't entirely understand. indices were not used in fluid solver or other parts of this code...
 		# requires edits to other parts too in order to update with time.
 		# using indices like Abali's code:
-		self.n = FacetNormal(self.mesh)
+		#self.n = FacetNormal(self.mesh)
 
 		self.Dim = self.mesh.topology().dim()
 		i,j, k, l, m = indices(5)
 		self.delta = Identity(self.Dim)
-
+#
 		self.F_s = as_tensor( self.d[k].dx(i) + self.delta[k, i], (k, i) )
 		self.J_s = det(self.F_s)
 
@@ -173,11 +192,11 @@ class Structure_Solver:
 		self.E_s = as_tensor(1./2.*(self.C_s[i, j] - self.delta[i, j]), (i, j) )
 		self.S_s = as_tensor( DC.lambda_s*self.E_s[k, k]*self.delta[i, j] + 2.*DC.mu_s*self.E_s[i, j], (i, j))
 
-		# S_s = as_tensor( lambda_s*E[k, k]*delta[i, j] + 2.*mu_s*E[i, j], (i, j))
+		## S_s = as_tensor( lambda_s*E[k, k]*delta[i, j] + 2.*mu_s*E[i, j], (i, j))
 		self.P_s = as_tensor( self.F_s[i, j]*self.S_s[k, j], (k, i) )
-
+#
 		self.t_hat = as_tensor( self.J_s*inv(self.F_s)[k, j]*self.sigma_FSI[j, i]*self.n[k] , (i, ) )
-
+#
 
 		Form_s = ( DC.rho_s*(self.d-2.*self.d0+self.d00_s)[i]/(DC.dt*DC.dt)*self.du[i] + self.P_s[k, i]*self.du[i].dx(k) - DC.rho_s*self.B[i]*self.du[i] )*self.dV - \
 		     self.t_hat[i]*self.du[i]*self.dA(3)
@@ -246,6 +265,35 @@ class Structure_Solver:
 
 		# First directional derivative of Pi about d in the direction of v
 		Form_s = derivative(self.Pi, self.d, self.du)
+
+
+		#######################################################################
+		# Alternative using code from Abali. Don't entirely understand. indices were not used in fluid solver or other parts of this code...
+		# requires edits to other parts too in order to update with time.
+		# using indices like Abali's code:
+		self.n = FacetNormal(self.mesh)
+
+		self.Dim = self.mesh.topology().dim()
+		i,j, k, l, m = indices(5)
+		self.delta = Identity(self.Dim)
+#
+		self.F_s = as_tensor( self.d[k].dx(i) + self.delta[k, i], (k, i) )
+		self.J_s = det(self.F_s)
+
+		self.C_s = as_tensor( self.F_s[k, i]*self.F_s[k, j], (i, j) )
+		self.E_s = as_tensor(1./2.*(self.C_s[i, j] - self.delta[i, j]), (i, j) )
+		self.S_s = as_tensor( DC.lambda_s*self.E_s[k, k]*self.delta[i, j] + 2.*DC.mu_s*self.E_s[i, j], (i, j))
+
+		## S_s = as_tensor( lambda_s*E[k, k]*delta[i, j] + 2.*mu_s*E[i, j], (i, j))
+		self.P_s = as_tensor( self.F_s[i, j]*self.S_s[k, j], (k, i) )
+#
+		self.t_hat = as_tensor( self.J_s*inv(self.F_s)[k, j]*self.sigma_FSI[j, i]*self.n[k] , (i, ) )
+#
+
+		Form_s = ( DC.rho_s*(self.d-2.*self.d0+self.d00_s)[i]/(DC.dt*DC.dt)*self.du[i] + self.P_s[k, i]*self.du[i].dx(k) - DC.rho_s*self.B[i]*self.du[i] )*self.dV - \
+		     self.t_hat[i]*self.du[i]*self.dA(3)
+
+		########################################################################
 
 		# Jacobian of the directional derivative Fd
 		Gain_s = derivative(Form_s, self.d, self.u)

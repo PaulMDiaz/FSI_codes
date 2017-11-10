@@ -29,15 +29,53 @@ class Structure_Solver:
 		self.V_space = VectorFunctionSpace(self.mesh, self.ElementType, self.ElementDegree)
 		self.T_space = TensorFunctionSpace(self.mesh, self.ElementType, self.ElementDegree)
 
+		self.V_element = VectorElement(self.ElementType, self.mesh.ufl_cell() , self.ElementDegree)
 
-		## Function for results
-		self.d_res = Function(self.V_space, name = 'd')
+		# Mixed space for computing both displacement and rate of change of displacement
+		self.V_element = VectorElement(self.ElementType, self.mesh.ufl_cell() , self.ElementDegree)
+		#self.V2_temp = self.V_element*self.V_element
+
+		#self.V2_space = FunctionSpace(self.mesh, self.V2_temp)
+		self.V2_space = FunctionSpace(self.mesh, MixedElement([self.V_element, self.V_element]))
+
+		self.V = TestFunction(self.V2_space)
+		self.dU = TrialFunction(self.V2_space)
+		self.U = Function(self.V2_space)
+		self.U0 = Function(self.V2_space)
+
+		# Load initial conditions to u0 and v0. Otherwise set to 0.
+		self.u0 = Constant((0,)*self.V_space.mesh().geometry().dim())
+		self.v0 = Constant((0,)*self.V_space.mesh().geometry().dim())
 
 		# Functions for solver
-		self.d_ = Function(self.V_space) 		# displacement from current iteration
-		self.d_n = Function(self.V_space)		# displacement from prevous iteration
-		self.du = TrialFunction(self.V_space)	# incemental displacement
-		self.v = TestFunction(self.V_space)		# Test function
+		self.u_t, self.v_t = split(self.V) 	# Test functions
+		self.u, self.v = split(self.U)		# Functions
+
+		self.cells = CellFunction("size_t", self.mesh)
+		self.dx = Measure('dx', domain = self.mesh, subdomain_data = self.cells)
+
+		# Project u0 and v0 into U0
+		self.a_proj = inner(self.dU, self.V)*self.dx
+		self.L_proj = inner(self.u0, self.u_t)*self.dx + inner(self.v0, self.v_t)*self.dx
+		solve(self.a_proj == self.L_proj, self.U0)
+		self.u0, self.v0 = split(self.U0)
+
+
+		## Function for results
+		self.u_res = Function(self.V_space, name = 'u')
+		self.v_res = Function(self.V_space, name = 'v')
+
+		## Functions for solver
+		#self.d_ = Function(self.V_space) 		# displacement from current iteration
+		#self.d_n = Function(self.V_space)		# displacement from prevous iteration
+		#self.v_ = Function(self.V_space)		# velocity from the current iteration
+		#self.v_n = Function(self.V_space)		# velocity from the previous iteration
+
+		## do I need these for velocity too?
+		#self.du = TrialFunction(self.V_space)	# incemental displacement
+		#self.v = TestFunction(self.V_space)		# Test function
+
+
 
 ###########################
 	#	self.d00_s = Function(self.V_space)
@@ -49,11 +87,14 @@ class Structure_Solver:
 		elif self.solver == "NeoHookean":
 			#self.Incompressible_NeoHookean_Solver(p_s, F)
 			self.Compressible_NeoHookean_Solver(p_s, F)
+		elif self.solver =="St_venant":
+			self.Compressible_St_venant(p_s, F)
+
 		else:
 			print "Error. The only solvers available for the structure are Linear or NeoHookean"
 
-		self.d_dot = project( (self.d_ - self.d_n)/p_s.dt, self.V_space, solver_type = "mumps", \
-			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+		#self.d_dot = project( (self.d_ - self.d_n)/p_s.dt, self.V_space, solver_type = "mumps", \
+			#form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
 
 	def Linear_Elastic_Solver(self, p_s, F):
 
@@ -79,7 +120,7 @@ class Structure_Solver:
 		#self.T_hat = Constant((0.0,0.0))
 		n = FacetNormal(self.mesh)
 		self.T_hat = dot(self.sigma_FSI, n)
-		self.T_hat = Constant((0.0,0.0))
+		#self.T_hat = Constant((0.0,0.0))
 
 		print ""
 		print ""
@@ -103,6 +144,133 @@ class Structure_Solver:
 		print ""
 		print ""
 		print "EXITING STRUCTURE SOLVER"
+
+	def Compressible_St_venant(self, p_s, F):
+
+		print ""
+		print ""
+		print "ENTERING STRUCTURE St Venant SOLVER"
+		print ''
+		print ''
+
+		# displacements and velocities at mid points
+		self.u_mid = 0.5*(self.u0 + self.u)
+		self.v_mid = 0.5*(self.v0 + self.v)
+
+		I = Identity(p_s.Dim)
+
+		# Project stress from fluid tensor space onto structure tensor space
+		self.sigma_FSI = project(F.sigma_FSI, self.T_space, solver_type = "mumps",\
+			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+
+		#project seems wrong when values on boundary are printed...
+		#I = Identity(self.d_.cell().d)
+
+		# Kinematics
+		self.F =  variable(I + grad(self.u))		# Deformation gradient tensor
+		self.C = variable(self.F.T*self.F)			# Right Cauchy-Green tensor
+
+		# Green lagrange stress tensor (green-st venant strain tensor)
+		self.E = variable(0.5*(self.C-I))
+
+		# stored strain energy
+		self.psi = p_s.lambda_s/2*(tr(self.E)**2)+p_s.mu_s*tr(self.E*self.E)
+
+		# 2nd piola kirchoff stress tensor
+		self.S2 = diff(self.psi, self.E)
+
+		# 1st piola kirchoff stress tensor
+		self.S1 = self.F*self.S2
+
+		# Invariants of deformation tensor
+		self.J = det(self.F)
+
+		# Evaluate
+
+		self.k = Constant(p_s.dt)
+		# Variational form for hyperelasticity
+
+		# Traction on boundary
+
+		# solves and gives 0 displacment
+		#self.T_hat = Constant((0.0, 0.0))
+
+		# Solves and gives too great a displacement.
+		n_f = FacetNormal(F.mesh)
+		n_s = FacetNormal(self.mesh)
+		self.T_hat = dot(self.sigma_FSI, n_s)
+		#self.T_hat = Constant((0.0, 0.0))
+		# Piola map
+
+		# Recieves error that array must be at least 2 dimensional. 0 degree array given.
+		#self.T_hat = dot(dot(self.J * self.sigma_FSI, inv(self.F.T) ),n_s)
+
+		# solves and gives 0 displacment
+		#self.T_hat = Constant((0.0, 0.0))
+
+		# Total potential energy
+		#self.Pi = self.psi*self.dx - dot(self.T_hat, self.d_)*self.ds(2) - dot(self.B, self.d_)*self.dx
+
+		# The variational form corresponding to hyperelasticity
+
+		self.L = p_s.rho_s*inner(self.v - self.v0, self.u_t)*self.dx \
+		+ self.k*inner(self.S2, grad(self.u_t))*self.dx \
+		- self.k*inner(self.B, self.u_t)*self.dx \
+		+ inner(self.u - self.u0, self.v_t)*self.dx \
+		- self.k*inner(self.v_mid, self.v_t)*self.dx
+
+		self.L = self.L-self.k*inner(self.T_hat, self.u_t)*self.ds(2)
+		#begin("Computing structure displacement")
+		# get Neumann BCs on the stress. This is the hard part.
+		#Neumann stuff
+		# in problem_definitions:
+		#neumann_conditions - return neumann boundary conditions for the stress field
+		#neumann_boundaries - return boundaries over which Neumann conditions act
+		# T_hat expression... try with constant for now.
+		#self.T_hat = Constant((0.0, 0.0))
+		#self.T_hat = Expression(('0.0', '0.0'))
+
+		# In Cylinder the boundary S.fsi is defined and marked as 2.
+		# the definition here of ds differes a little from their one.
+
+		#compiled_boundary = compile_subdomains(S.fsi)
+		#compiled_boundary.mark(boundary,7)
+
+
+		# introduced in line 499 of solution_algorithms
+		self.a = derivative(self.L, self.U, self.dU)
+		# Setup problem
+		# may have to fix bcu to align with Twist.
+		# a bit iffy on how solve, step, update interact in CBC twist... write out, comb over.
+
+		problem = NonlinearVariationalProblem(self.L, self.U, self.bcs, self.a)
+		solver = NonlinearVariationalSolver(problem)
+		solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-12
+		solver.parameters["newton_solver"]["relative_tolerance"] = 1e-12
+		solver.parameters["newton_solver"]["maximum_iterations"] = 100
+		solver.solve()
+
+
+
+		# First directional derivative of Pi about d in the direction of v
+		#Form_s = derivative(self.Pi, self.d_, self.v)
+
+		# Jacobian of the directional derivative Fd
+		#Gain_s = derivative(Form_s, self.d_, self.du)
+
+		#begin("Computing structure displacement")
+
+		#solve(Form_s == 0, self.d_, self.bcs, J = Gain_s, \
+			#solver_parameters  = {"newton_solver":{"linear_solver" : "mumps", "relative_tolerance" : 1e-3} }, \
+			#form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
+		#end()
+
+		#print ""
+		#print ""
+		#print "EXITING STRUCTURE SOLVER"
+
+
+
 
 	def Compressible_NeoHookean_Solver(self, p_s, F):
 
@@ -135,17 +303,6 @@ class Structure_Solver:
 
 		#original line
 		#self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-
-		# Traction force (per unit reference area)
-		# (first piola kirchoff stress tensor, also called called lagrangian stress tensor)
-		self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.n
-
-		#self.T_fat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		#self.n_f = FacetNormal(F.mesh)
-
-		#self.T_hat = -self.J*inv(self.F)*F.sigma_FSI*self.N
-		#self.T_fat = -dot(self.J*F.sigma_FSI*inv(self.F).T,self.n_f)
-		#self.T_fat = -self.J*F.sigma_FSI*inv(self.F).T*self.n_f
 
 
 		#self.T_fat_2 = project(self.T_fat, self.V_space, solver_type = "mumps",\
@@ -219,13 +376,16 @@ class Structure_Solver:
 		self.psi = (p_s.mu_s/2)*(self.Ic-3)
 
 		#self.T_hat = self.J*inv(self.F)*self.sigma_FSI*self.N
-		self.T_hat = Constant((0.0,0.0))
 
-		#self.n = FacetNormal(self.mesh)
+		#self.T_hat = Constant((0.0,0.0))
+
+		self.n = FacetNormal(self.mesh)
 		#self.T_hat = dot(self.sigma_FSI, self.n)
 
 		# Total potential energy
+		#self.Pi = self.psi*self.dx - dot(self.T_hat, self.d_)*self.ds(2) - dot(self.B, self.d_)*self.dx
 		self.Pi = self.psi*self.dx - dot(self.T_hat, self.d_)*self.ds(2) - dot(self.B, self.d_)*self.dx
+
 
 		# First directional derivative of Pi about d in the direction of v
 		Form_s = derivative(self.Pi, self.d_, self.v)

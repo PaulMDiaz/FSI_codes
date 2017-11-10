@@ -24,10 +24,11 @@ class Mesh_Solver:
 		print ''
 
 		# rewrite this without indices...
-		
+
 		# artificial viscosity
 		a = 1.0e-11		# MPa/s
-		bc_m = [DirichletBC(F.V_space, S.d_dot, F.facets, 3)]
+		#bc_m = [DirichletBC(F.V_space, S.d_dot, F.facets, 3)]
+		bc_m = [DirichletBC(F.V_space, S.v, F.facets, 3)]
 		Form_m = a*sym(grad(F.u_mesh))[i, j]*F.del_u_mesh[i].dx(j)*F.dx
 		Gain_m = derivative(Form_m, F.u_mesh, F.du_mesh)
 

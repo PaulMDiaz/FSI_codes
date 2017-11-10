@@ -38,14 +38,14 @@ class Fluid_Solver(object):
                 # called only for saving results... weird...
 
 		# Functions for solver at previos and current time steps... could also be results...
-		self.u_n = Function(self.V_space) 	# Current time step
-		self.u_  = Function(self.V_space)	# Previous time step
-		self.p_n = Function(self.S_space)
-		self.p_  = Function(self.S_space)
+		self.u_n = Function(self.V_space) 	# Previous time step
+		self.u_  = Function(self.V_space)	# Current time step
+		self.p_n = Function(self.S_space)	# Previous time step
+		self.p_  = Function(self.S_space)	# Current time step
 
 		# check these
-		self.u0 = Function(self.V_space)
-		self.u_mesh = Function(self.V_space)
+		self.u0 = Function(self.V_space)	# doesn't appear to be used anywhere... check
+		self.u_mesh = Function(self.V_space)# Current time step
 
 		# self.sigma_FSI = Function(self.T_space) # pressure on interface. a function..
 
@@ -92,13 +92,24 @@ class Fluid_Solver(object):
 		def sigma(u, p):
 		    return 2*p_s.mu_f*epsilon(u) - p*Identity(len(u))
 
-
 		# Define variational problem for step 1: Tentative velocity
+		#self.F1 = p_s.rho_f*dot((self.u - self.u_n) / self.k, self.v)*self.dx \
+		#   + p_s.rho_f*inner(grad(self.u_n)*(self.u_n-self.u_mesh), self.v)*self.dx \
+		#   + inner(sigma(self.U, self.p_n), epsilon(self.v))*self.dx \
+		#   + inner(self.p_n*self.n, self.v)*self.ds \
+		#   - p_s.mu_f*inner(grad(self.U).T*self.n, self.v)*self.ds \
+		#   - inner(self.f, self.v)*self.dx
+
 		self.F1 = p_s.rho_f*dot((self.u - self.u_n) / self.k, self.v)*self.dx \
-		   + p_s.rho_f*dot(dot(self.u_n, nabla_grad(self.u_n)), self.v)*self.dx \
+		   + p_s.rho_f*dot(dot((self.u_n-self.u_mesh), nabla_grad(self.u_n)), self.v)*self.dx \
 		   + inner(sigma(self.U, self.p_n), epsilon(self.v))*self.dx \
-		   + dot(self.p_n*self.n, self.v)*self.ds - dot(p_s.mu_f*nabla_grad(self.U)*self.n, self.v)*self.ds \
-		   - dot(self.f, self.v)*self.dx
+		   + dot(self.p_n*self.n, self.v)*self.ds \
+		   - p_s.mu_f*dot(nabla_grad(self.U)*self.n, self.v)*self.ds \
+		   - inner(self.f, self.v)*self.dx
+		#self.F1 = (1/self.k)*inner(self.u - self.u_n, self.v)*self.dx\
+        #             + inner(grad(self.u_n)*(self.u_n - self.u_mesh), self.v)*self.dx\
+        #             + p_s.nu_f*inner(grad(self.u), grad(self.v))*self.dx\
+        #             - inner(self.f, self.v)*self.dx
 		self.a1 = lhs(self.F1)
 		self.L1 = rhs(self.F1)
 
@@ -119,12 +130,15 @@ class Fluid_Solver(object):
 
 		[bc.apply(self.A1) for bc in self.bcu]
 		[bc.apply(self.A2) for bc in self.bcp]
+		# maybe this line?
+		#[bc.apply(self.A3) for bc in self.bcu]
 
 		# Compute tentative velocity step
 		begin("Computing tentative velocity")
 		self.b1 = assemble(self.L1)
-		[bc.apply(self.b1) for bc in self.bcu]
-		solve(self.A1, self.u_.vector(), self.b1, 'bicgstab', 'ilu')
+		#[bc.apply(self.b1) for bc in self.bcu]
+		[bc.apply(self.A1,self.b1) for bc in self.bcu]
+		solve(self.A1, self.u_.vector(), self.b1, 'bicgstab', 'hypre_amg')
 		end()
 
 		#prec = "amg" if has_krylov_solver_preconditioner("amg") else "default"
@@ -134,13 +148,15 @@ class Fluid_Solver(object):
 		begin("Computing pressure correction")
 		self.b2 = assemble(self.L2)
 		[bc.apply(self.b2) for bc in self.bcp]
-		solve(self.A2, self.p_.vector(), self.b2, 'bicgstab', 'ilu')
+		solve(self.A2, self.p_.vector(), self.b2, 'bicgstab', 'hypre_amg')
 		end()
-
+		#'hypre_amg' or 'imu'
 		# Velocity correction
 		begin("Computing velocity correction")
 		self.b3 = assemble(self.L3)
-		solve(self.A3, self.u_.vector(), self.b3, 'cg')
+		# this line is not in earlier code... seems to assert BC.
+		[bc.apply(self.A3,self.b3) for bc in self.bcu]
+		solve(self.A3, self.u_.vector(), self.b3, 'cg', 'sor')
 		end()
 
 		self.tau = p_s.mu_f*(grad(self.u_) + grad(self.u_).T)

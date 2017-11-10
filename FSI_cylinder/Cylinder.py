@@ -26,8 +26,8 @@ class problem_specific:
 	    # Physical parameters
 		self.nu_f = 0.001	# Fluid viscosity (was 0.2)
 		self.nu_s = 0.4	# Structure Poisson coefficient should be 0.2
-		self.mu_s = 0.5e6 # structure first lame constant
-		#self.E_s = 1e5	# Structure Young modulus (was 1e3)
+		self.mu_s = 0.5e6 # structure first lame constant (very small)
+		#self.mu_s = 0.5e9 # structure first lame constant (very small)
 		self.rho_f = 1000.0	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 		self.rho_s = 1000.0
 
@@ -39,7 +39,8 @@ class problem_specific:
 
 		# Numerical parameters
 		self.dt = 0.001	# Time step
-		self.T = .005	#  Set final time for iteration
+		#self.T = 8.00	#  Set final time for iteration
+		self.T = 0.008	#  Set final time for iteration
 		self.N = 64		# Number of discretizations (square mesh) (place cell edge on FSI)
 
 		# Geometric parameters
@@ -47,6 +48,8 @@ class problem_specific:
 		self.H = 0.41	#Channel height
 		self.l = 0.35 	#Bar length
 		self.h = 0.02	#Bar height
+
+		self.s_b = 2*self.h 	#Border about structure over which to refine.
 
 		# x coordinate of start of bar
 		self.x_bar = 0.6-self.l
@@ -60,7 +63,7 @@ class problem_specific:
 		################ DEFINE MESHES AND DOMAINS #######################
 
 		self.channel = Rectangle(Point(0, 0), Point(self.L, self.H))
-		self.cylinder = Circle(Point(0.2, 0.2), 0.05,50)
+		self.cylinder = Circle(Point(0.2, 0.2), 0.05, self.N)
 		# this definition leaves bar tangent to circle with small gap
 		self.bar = Rectangle(Point(self.x_bar,0.19), Point(0.6, 0.19+self.h))
 		# Ensures overlap between bar and circle.
@@ -79,7 +82,6 @@ class problem_specific:
 		#self.domain = self.channel - (self.cylinder + self.bar_2) + self.bar_2
 		self.domain = self.f_domain +self.s_domain
 
-
 		# Set structure as subdomain, first type for global mesh
 		self.domain.set_subdomain(1,self.s_domain)
 		#self.domain.set_subdomain(2,self.f_domain)
@@ -88,8 +90,8 @@ class problem_specific:
 		#print dir(self.domain.get_subdomains.__getattribute__)
 		#print dir(self.domain.has_subdomains)
 		# generate global mesh
-		self.mesh = generate_mesh(self.domain, self.N)
 
+		self.mesh = generate_mesh(self.domain, self.N)
 
 		#self.Define_Subdomains()		# Sets the subdomains and the submeshes for fluid and structure
 
@@ -103,39 +105,53 @@ class problem_specific:
 
 		#cell_markers = SubsetIterator(markers, 1)
 
-		#mesh = refine(mesh, cell_markers)
+		# if mesh is refined prior to submesh then submesh breaks.
+		#"Mesh does not include a MeshValueCollection the cell dimension of the mesh."
+		# I think this means that subdomains are not marked post refinement.
 
-	#def Define_Subdomains(self):
-		# Define fluid subdomain
-		#f_domain = self.f_domain
-		#s_domain = self.s_domain
+		#cell_markers = CellFunction("bool", self.mesh, False)
+		#self.structure = AutoSubDomain(lambda x: x[0] >= self.x_bar and x[0] <= 0.6 and x[1] >= 0.19 and x[1] <= 0.19+self.h)		#fsi = CompiledSubDomain('on_boundary && x[0] > x_bar + DOLFIN_EPS && x[0]< L - DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = self.L, H = self.H, x_bar = self.x_bar)
+		#self.structure.mark(cell_markers,True)
+		#self.mesh = refine(self.mesh, cell_markers)
+		#self.mesh = refine(self.mesh, cell_markers)
 
-		#class Fluid(SubDomain):
-			#def inside(self, x, on_boundary):
-				#return True if in f_domain else False
+		# Mark subdomains anew. maybe structure as opposed to s_domain...
 
-		# Define structure subdomain
-		#class Structure(SubDomain):
-			#def inside(self, x, on_boundary):
-				#return True if in s_domain else False
 
-		#self.fluid = Fluid()
-		#self.structure = Structure()
-
-		# Set fluid and structure as subdomains, type 2 for submesh.
-		#self.subdomains = CellFunction('size_t', self.mesh)
-		#self.subdomains.set_all(0)
-
-		# Mark fluid and structure domains
-		#self.fluid.mark(self.subdomains, 0)
-		#self.structure.mark(self.subdomains, 1)
-
-		# Create submeshes
-		#self.mesh_f = SubMesh(self.mesh, self.subdomains, 0)
-		#self.mesh_s = SubMesh(self.mesh, self.subdomains, 1)
-
+		# Create submesh
 		self.mesh_f = SubMesh(self.mesh, 0)
 		self.mesh_s = SubMesh(self.mesh, 1)
+
+		#center = Point(0.2, 0.2)
+
+		h_cell = self.mesh.hmin()
+		#cell_f = CellFunction("bool", mesh, False)
+		#for cell in cells(mesh):
+		#    if cell.midpoint().distance(center) < 0.05 + h:#
+		#        cell_f[cell] = True
+		#mesh = refine(mesh, cell_f)
+
+		#################### maybe try commentng out this ######################
+		# define region over which to refine.
+		self.struct_border = AutoSubDomain(lambda x: x[0] >= self.x_bar - DOLFIN_EPS and x[0] <= 0.6 + DOLFIN_EPS and x[1] >= 0.19 - DOLFIN_EPS and x[1] <= 0.19+self.h+DOLFIN_EPS)
+		#fsi = CompiledSubDomain('on_boundary && x[0] > x_bar + DOLFIN_EPS && x[0]< L - DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = self.L, H = self.H, x_bar = self.x_bar)
+
+		# Refine mesh on structure, fluid and whole mesh... is whole mesh ever used?
+		for i_mark in range(2):
+			cell_markers_1 = FacetFunction("bool", self.mesh_s, False)
+			self.struct_border.mark(cell_markers_1,True)
+			self.mesh_s = refine(self.mesh_s, cell_markers_1)
+
+			cell_markers_2 = FacetFunction("bool", self.mesh, False)
+			self.struct_border.mark(cell_markers_2,True)
+			self.mesh = refine(self.mesh, cell_markers_2)
+
+			cell_markers_3 = FacetFunction("bool", self.mesh_f, False)
+			self.struct_border.mark(cell_markers_3,True)
+			self.mesh_f = refine(self.mesh_f, cell_markers_3)
+
+		#
+		#self.mesh_s = refine(self.mesh_s, cell_markers)
 		# do I need these subdomains if I already have teh domain.set_subdomain.
 		# It looks as though I could do one or the other. Try with just the above.
 		#self.subdomains = CellFunction('size_t', self.mesh)
@@ -148,34 +164,98 @@ class problem_specific:
 
 		# Variables to generate files
 		pwd = './Results_Cylinder_FSI/'
-		self.file_d_s = File(pwd + 'd_s.pvd')
+		self.file_u_s = File(pwd + 'u_s.pvd')
+		self.file_v_s = File(pwd + 'v_s.pvd')
 		self.file_v_f = File(pwd + 'v_f.pvd')
 		self.file_p_f = File(pwd + 'p_f.pvd')
 
+	def compute_forces(self,Mesh,nu,u,p, ds):
+		self.mesh = Mesh
+
+		# should include both pressure contribution and shear forces.
+		# Face normals
+		n = FacetNormal(self.mesh)
+		# Stress tensor
+		# Traction
+		sigma = nu*(grad(u)+grad(u).T) -p*Identity(2)
+		T = dot(sigma,n)
+
+		drag = -T[0]*ds(3)-T[0]*ds(4)
+		lift = -T[1]*ds(3)-T[1]*ds(4)
+
+		# Face normals
+		#n = FacetNormal(self.mesh)
+		#compute force on cylinder and structure
+		# F.cylinder and F.FSI are F facets 3 and 4....
+		#drag = -p*n[0]*ds(1)-p*n[0]*ds(2)
+		#lift = p*n[1]*ds(1)+p*n[1]*ds(2)
+		drag = assemble(drag); lift = assemble(lift);
+		return drag, lift
 
 	def Define_Boundary_Conditions(self, S, F):
 
 		L = self.L
 		H = self.H
+		h = self.h
+		l = self.l
 		x_bar = self.x_bar
 		U_mean = self.U_mean
 		############## Define boundary domain locations #################
 
 		# It would be nice to lump walls and cylinder together.
-		inlet   = CompiledSubDomain('near(x[0], 0) && on_boundary ')
-		outlet  = CompiledSubDomain('near(x[0], L) && on_boundary', L = L)
-		walls   = CompiledSubDomain('near(x[1], 0) || near(x[1], H) && on_boundary', H = H)
+		#inlet   = CompiledSubDomain('near(x[0], 0) && on_boundary ')
+		#outlet  = CompiledSubDomain('near(x[0], L) && on_boundary', L = L)
+		#walls   = CompiledSubDomain('near(x[1], 0) || near(x[1], H) && on_boundary', H = H)
+
+		class Inlet(SubDomain):
+		    def inside(self,x,on_boundary):
+		        return x[0] < DOLFIN_EPS and on_boundary
+
+		class Outlet(SubDomain):
+		    def inside(self,x,on_boundary):
+		        return x[0] > (L - DOLFIN_EPS) and on_boundary
+
+		class Walls(SubDomain):
+		    def inside(self,x,on_boundary):
+		        return x[1] < DOLFIN_EPS and on_boundary or x[1] > H - DOLFIN_EPS and on_boundary
 
 		# Distinguish between cylinder support and cantilver beam with fsi surface
 		# current formulation of cylinder might obtain not only circle but also weird cutout of rectangle... could be nasty.
 		# Should probably edit implementation of Dolfin_eps so that vertices lie on both subdomains..
-		cylinder = CompiledSubDomain('on_boundary && x[0] > DOLFIN_EPS && x[0]< x_bar + DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = L, H = H, x_bar = x_bar)
-		fsi = CompiledSubDomain('on_boundary && x[0] > x_bar + DOLFIN_EPS && x[0]< L - DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = L, H = H, x_bar = x_bar)
 
-		# Need to identify LHS of bar.
-		# Try within tol of x_bar... Otherwise see Abali
-		left = CompiledSubDomain('on_boundary && x[0] > x_bar - DOLFIN_EPS && x[0]< x_bar + DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = L, H = H, x_bar = x_bar)
-		fsi = CompiledSubDomain('on_boundary && x[0] > x_bar + DOLFIN_EPS && x[0]< L - DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = L, H = H, x_bar = x_bar)
+		class Cylinder(SubDomain):
+		    def inside(self,x,on_boundary):
+				return x[0] > DOLFIN_EPS and x[0] < x_bar + DOLFIN_EPS and \
+				x[1] > DOLFIN_EPS and x[1] < (H - DOLFIN_EPS) and on_boundary
+
+		class Fsi(SubDomain):
+		    def inside(self,x,on_boundary):
+		        return x[0] > x_bar - DOLFIN_EPS and x[0] < L - DOLFIN_EPS and \
+		        x[1] > DOLFIN_EPS and x[1] < (0.2 -h/2 + DOLFIN_EPS) and on_boundary or \
+				x[0] > x_bar - DOLFIN_EPS and x[0] < L - DOLFIN_EPS and \
+		        x[1] > (0.2 + h/2 - DOLFIN_EPS) and x[1] < H - DOLFIN_EPS and on_boundary or \
+				x[0] > x_bar + l - DOLFIN_EPS and x[0] < L - DOLFIN_EPS and \
+		        x[1] > DOLFIN_EPS and x[1] < H - DOLFIN_EPS and on_boundary
+
+		#cylinder = CompiledSubDomain('on_boundary && x[0] > DOLFIN_EPS && x[0]< x_bar + DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = L, H = H, x_bar = x_bar)
+		#fsi = CompiledSubDomain('on_boundary && x[0] > x_bar + DOLFIN_EPS && x[0]< L - DOLFIN_EPS && x[1]>DOLFIN_EPS && x[1] < H-DOLFIN_EPS', L = L, H = H, x_bar = x_bar)
+
+		class Left(SubDomain):
+		    def inside(self,x,on_boundary):
+		        return x[0] > x_bar - DOLFIN_EPS and x[0] < x_bar + DOLFIN_EPS and \
+		        x[1] > DOLFIN_EPS and x[1] < H - DOLFIN_EPS and on_boundary
+
+		# Compile subdomains
+		walls = Walls()
+		inlet = Inlet()
+		outlet = Outlet()
+		cylinder = Cylinder()
+		fsi = Fsi()
+		left = Left()
+
+		#inlet   = CompiledSubDomain('near(x[0], 0) && on_boundary ')
+		#outlet  = CompiledSubDomain('near(x[0], L) && on_boundary', L = L)
+		#walls   = CompiledSubDomain('near(x[1], 0) || near(x[1], H) && on_boundary', H = H)
 
 		############# Initialize structure boundary #############
 
@@ -202,7 +282,9 @@ class problem_specific:
 
 		#  BCs for the left side (no displacement)
 		# Structure is in essence a cantilver beam.
-		LeftBC = DirichletBC(S.V_space, Constant((0.0, 0.0)), S.left)
+		#LeftBC = DirichletBC(S.V_space, Constant((0.0, 0.0)), S.left)
+		# both velocity and displacement are zero...
+		LeftBC = DirichletBC(S.V2_space, Constant((0.0, 0.0, 0.0, 0.0)), S.left)
 
 		#  Set up the boundary conditions
 		S.bcs = [LeftBC]
@@ -238,7 +320,6 @@ class problem_specific:
 		F.n = FacetNormal(F.mesh)
 
 		#  Define  fluid boundary conditions
-		#  Noslip boundary condition for bottom and walls of cavity
 		noSlipwalls = DirichletBC(F.V_space, Constant((0.0, 0.0)), F.walls)
 		noSlipcylinder = DirichletBC(F.V_space, Constant((0.0, 0.0)), F.cylinder)
 		#  Freestream velocity boundary condition for top of cavity
@@ -251,8 +332,13 @@ class problem_specific:
 		bcu_walls = DirichletBC(F.V_space, Constant((0, 0)), F.walls)
 		bcu_cylinder = DirichletBC(F.V_space, Constant((0, 0)), F.cylinder)
 
-		bcu_fsi = DirichletBC(F.V_space, Constant((0, 0)), F.fsi)
+		#bcu_fsi = DirichletBC(F.V_space, Constant((0, 0)), F.fsi)
 		#bcu_fsi = DirichletBC(F.V_space, F.u_mesh, F.fsi)
+
+
+		bcu_fsi = DirichletBC(F.V_space, F.u_mesh, F.facets, 3)
+		#bc_m = [DirichletBC(F.V_space, S.v, F.facets, 3)]
+		#bcu_fsi = DirichletBC(F.V_space, Constant((0, 0)), F.fsi)
 
 		# Pressure
 		bcp_outlet = DirichletBC(F.S_space, Constant(0), F.outlet)
@@ -270,10 +356,18 @@ class problem_specific:
 #np.savetxt('nodal_d', nodal_values_d)
 
 	def Save_Results(self, S, F):
-
-		S.d_res.assign(S.d_)
-		self.file_d_s << (S.d_res, self.t)
+		# Save fluid velocity and pressure
 		F.u_res.assign(F.u_)
 		self.file_v_f << (F.u_res, self.t)
 		F.p_res.assign(F.p_)
 		self.file_p_f << (F.p_res, self.t)
+		#Save structure displacement and velocity
+		# extract displacements and velocities for results...
+		u, v = S.U.split()
+		# maybe like this, or maybe save U...
+		self.file_u_s << (u, self.t)
+		self.file_v_s << (v, self.t)
+		#S.u_res.assign(S.u)
+		#self.file_u_s << (S.u_res, self.t)
+		#S.v_res.assign(S.v)
+		#self.file_v_s << (S.v_res, self.t)

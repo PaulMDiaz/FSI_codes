@@ -60,18 +60,22 @@ StructureElementDegree = 1 # Standard linear lagrange element.
 
 # Set the solver used for the structure problem
 # The options are "Linear" or "NeoHookean" for the structure solver
-StructureSolverMethod = "NeoHookean"
+#StructureSolverMethod = "NeoHookean"
+StructureSolverMethod = "St_venant"
 #StructureSolverMethod = "Linear"
 # Body forces on the structure
 StructureBodyForce = Constant((0.0, 0.0))
+
+# Define boundary conditions on subdomains (fluid and structure) but traction from fluid on the structure which
+# will be included after computing the fluid.
+
 
 # Set the equations for the variational solver and boundary conditions and creat structure solver object
 S = Structure_Solver(p_s.mesh_s, StructureElementType,
 	StructureElementDegree, StructureSolverMethod, StructureBodyForce)
 
-# Define boundary conditions on subdomains (fluid and structure) but traction from fluid on the structure which
-# will be included after computing the fluid.
 p_s.Define_Boundary_Conditions(S, F)
+
 
 ### for printing the interaction
 
@@ -87,10 +91,30 @@ dofs_s_S = S.S_space.tabulate_dof_coordinates().reshape((S.S_space.dim(),-1))
 dofs_s_V = S.V_space.tabulate_dof_coordinates().reshape((S.V_space.dim(),-1))
 dofs_s_T = S.T_space.tabulate_dof_coordinates().reshape((S.T_space.dim(),-1))
 
+
+dofs_s_V2 = S.V2_space.tabulate_dof_coordinates().reshape((S.V2_space.dim(),-1))
+
 #Extract dof indices for values on boundary.
 # y = 0.5 if mesh is not deformed.
 #i_f_S = np.where((dofs_f_S[:,1] == p_s.h))[0] #  & (x <= 0.5)
+
+# inlet
 i_f_V_in = np.where((dofs_f_V[:,0] == 0.0))[0] #  & (x <= 0.5)
+# bottom wall
+i_f_V_b = np.where((dofs_f_V[:,1] == 0.0))[0]
+
+i_f_V_fsi_t = np.where((dofs_f_V[:,1] == 0.21) & (dofs_f_V[:,0] >= 0.25) & (dofs_f_V[:,0] <= 0.6))[0]
+i_f_V_fsi_b = np.where((dofs_f_V[:,1] == 0.19))[0]
+i_s_V_fsi_t = np.where((dofs_s_V[:,1] == 0.21) & (dofs_s_V[:,0] >= 0.25) & (dofs_s_V[:,0] <= 0.6))[0]
+
+i_s_V_fsi_l = np.where((dofs_s_V[:,0] == 0.25) & (dofs_s_V[:,1] >= 0.19) & (dofs_s_V[:,1] <= 0.21))[0]
+
+# monitor Point
+i_s_A = np.where((dofs_s_V[:,0] == p_s.x_bar + p_s.l) & (dofs_s_V[:,1] == 0.19 + p_s.h/2) )[0]
+i_s_A2 = np.where((dofs_s_V2[:,0] == p_s.x_bar + p_s.l) & (dofs_s_V2[:,1] == 0.19 + p_s.h/2) )[0]
+
+
+
 #i_f_T = np.where((dofs_f_T[:,1] == p_s.h))[0] #  & (x <= 0.5)
 #
 #i_s_S = np.where((dofs_s_S[:,1] == p_s.h))[0] #  & (x <= 0.5)
@@ -103,15 +127,18 @@ i_f_V_in = np.where((dofs_f_V[:,0] == 0.0))[0] #  & (x <= 0.5)
 # identify coordinates on structure boundary that match coordinates on fluid boundary.
 # Find indices in fluid vector space.
 
-#i_f_scomp = []
+i_f_scomp = []
 
-#for i_s in range(dofs_s_V[i_s_V].shape[0]/2):
-#	for i_f in range(dofs_f_V[i_f_V].shape[0]/2):
-#		if dofs_s_V[i_s_V[2*i_s]][0] == dofs_f_V[i_f_V[2*i_f]][0]:
-#			i_f_scomp.append(i_f_V[2*i_f])
-#			i_f_scomp.append(i_f_V[2*i_f+1])
+for i_s in range(dofs_s_V[i_s_V_fsi_t].shape[0]/2):
+	for i_f in range(dofs_f_V[i_f_V_fsi_t].shape[0]/2):
+		if dofs_s_V[i_s_V_fsi_t[2*i_s]][0] == dofs_f_V[i_f_V_fsi_t[2*i_f]][0]:
+			i_f_scomp.append(i_f_V_fsi_t[2*i_f])
+			i_f_scomp.append(i_f_V_fsi_t[2*i_f+1])
 
 ################ Iteration section ##############################
+
+results = np.zeros((int(p_s.T/p_s.dt)+1,4))
+count = 0
 
 # Sequentialy staggered iteration scheme
 while p_s.t < p_s.T + DOLFIN_EPS:
@@ -127,51 +154,47 @@ while p_s.t < p_s.T + DOLFIN_EPS:
 		print 'Loop iteration time = ', p_s.t
 
 		# It is logical to place the fluid solver first because this causes the
-		#structure to deform. However, placing it last allows the velcities of
+		#structure to deform. However, placing it last allows the velocities of
 		# mesh, fluid and structure to be compared for the same time step.
 
-		# Loop for convergence between fluid and structure
-		#u_FSI = F.u1.vector()[i_f_V]
-		#print "fluid velocity on interface = ", u_FSI
+		# Loop for convergence between fluid and structure.
+
+
 
 		# Solve fluid problem for velocity and pressure
 		F.Fluid_Problem_Solver(p_s, S)
 
-		# Fluid velocity should match structure and mesh of previous time step.
-		u_inlet = F.u_.vector()[i_f_V_in]
-		print "fluid velocity at inlet = ", u_inlet
+		# fluid velocity should match structure velocity which should match mesh velocity at this point:
 
-		#d_FSI  = S.d.vector()[i_s_S]
-		#print "structure deflection on interface prior to structure solve = ", d_FSI
-		# Compute structural displacement and velocity
+		# fluid velocity on top of FSI
+		#u_f_FSI_t = F.u_.vector().array()[i_f_V_fsi_t]
+		u_f_FSI_t = F.u_.vector().array()[i_f_scomp]
 
-		#pressure_f = F.p1.vector()[i_f_S]
-		#print 'pressure_FSI = ', pressure_f
+		# Structure displacement and velocity on top of FSI
+		u1, v1 = S.U.split(deepcopy = True)
+		u_s_FSI_t = u1.vector()[i_s_V_fsi_t]
+		v_s_FSI_t = v1.vector()[i_s_V_fsi_t]
+		u_s_FSI_l = u1.vector()[i_s_V_fsi_l]
+		v_s_FSI_l = v1.vector()[i_s_V_fsi_l]
 
-		# Print stress on interface from fluid
-		#sigma_FSI = F.sigma_FSI.vector()[i_f_T]
-		#print 'Fluid sigma_FSI = ', sigma_FSI
+		# mesh velocity on top of FSI
+		#u_m_FSI_t = F.u_mesh.vector()[i_f_V_fsi_t]
+		u_m_FSI_t = F.u_mesh.vector()[i_f_scomp]
+		# dofs_f_V[i_f_scomp]
+		# dofs_s_V[i_s_V_fsi_t]
 
-		# Structure velocity of previous time step should match fluid velcity. Maybe.
-		#if p_s.t >= 2*p_s.dt or ii >= 2:
-		#	d_FSI_1  = S.d.vector()[i_s_V]
-		#	# structure velocity
-		#	d_dot_FSI = S.d_dot.vector()[i_s_V]
+		print "2 norm mesh and fluid velocities :", np.linalg.norm(u_m_FSI_t - u_f_FSI_t)
+		print "2 norm mesh and structure velocities :", np.linalg.norm(u_m_FSI_t - v_s_FSI_t)
+		print "2 norm fluid and structure velocities :", np.linalg.norm(u_f_FSI_t - v_s_FSI_t)
+
+
+
+
 
 		# Solve structure problem for displacement and displancement rate of change
 		S.Structure_Problem_Solver(p_s, F)
 
-		### Save Sigma_FSI for use in other codes
-		#nodal_F_sigmaFSI = F.sigma_FSI.vector().array()
-		#np.savetxt('nodal_F_sigmaFSI', nodal_F_sigmaFSI)
-#
-	#	nodal_S_sigmaFSI = S.sigma_FSI.vector().array()
-		#np.savetxt('nodal_S_sigmaFSI', nodal_S_sigmaFSI)
 
-
-		#if p_s.t >= 2*p_s.dt or ii >= 2:
-			#u_M_FSI_1 = F.u_mesh.vector()[i_f_V]
-			#u_M_FSI_2 = F.u_mesh.vector()[i_f_scomp]
 
 		# Compute mesh velocity
 		Mesh_Solver.Move_Mesh(S, F)
@@ -187,12 +210,42 @@ while p_s.t < p_s.T + DOLFIN_EPS:
 		#d_FSI_1 = S.d.vector()[i_s_V]
 		#print "structure displacement on interface", d_FSI_1
 
+	# update structure solver
+	# propogate displacements and velocities
+	S.U0.assign(S.U)
 
-	S.d_n.assign(S.d_) 	# set current time to previous for displacement
+	# extract displacements and velocities for results...
+	#u, v = S.U.split()
+
+	#S.d_n.assign(S.d_) 	# set current time to previous for displacement
+
 	F.u_n.assign(F.u_)	# set current time to previous for velocity.
 	#S.d00_s.assign(S.d0)
 
 	p_s.Save_Results(S,F)
+
+	u1, v1 = S.U.split(deepcopy = True)
+	#A_disp = u1.vector()[i_s_A]
+
+	#Lift and drag forces acting on the whole submerged body
+	# (cylinder and structure together)
+	drag, lift = p_s.compute_forces(p_s.mesh_f,p_s.nu_f, F.u_, F.p_, F.ds)
+
+	#print " x and y displacements at point A:", A_disp
+
+	#print "drag and lift on cylinder and bar:", [drag, lift]
+
+	#results[count,:] = [A_disp[0], A_disp[1], drag, lift]
+	results[count,:] = [u1(0.2,0.6)[0], u1(0.2,0.6)[1], drag, lift]
+
+	count += 1
+
+	u_fsi_t = F.u_.vector()[i_f_V_fsi_t]
+
+	# things go bad when u_mesh is used as fluid BC...
+
+	#u_inlet = F.u_.vector()[i_f_V_in]
+	#print u_inlet
 	#for x in F.mesh.coordinates(): x[:] += p_s.dt*F.u_mesh(x)[:]
 	#p_s.Save_Results(S, F)
 
@@ -206,3 +259,17 @@ while p_s.t < p_s.T + DOLFIN_EPS:
 
 #scipy.io.savemat('u_v.mat', mdict={'u_v':u_v})
 #scipy.io.savemat('u_u.mat', mdict={'u_u':u_u})
+
+## compute and save nodal values
+nodal_values_u = F.u_.vector().array()
+np.savetxt('nodal_u_32', nodal_values_u)
+nodal_values_p = F.p_.vector().array()
+np.savetxt('nodal_p_32', nodal_values_p)
+nodal_values_m = F.u_mesh.vector().array()
+np.savetxt('nodal_m_32', nodal_values_m)
+# try saving just the U
+#u, v = S.U.split()
+nodal_values_U = S.U.vector().array()
+np.savetxt('nodal_U_32', nodal_values_U)
+
+scipy.io.savemat('results_32.mat', mdict={'results':results})

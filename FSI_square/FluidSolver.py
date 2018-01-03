@@ -114,7 +114,10 @@ class Fluid_Solver(object):
 		self.L1 = rhs(self.F1)
 
 		# Add Neumann bc_s to walls
-		self.L1 = self.L1 - Constant((0,0))*self.v*self.ds(5)
+		#self.L1 = self.L1 - Constant((0,0))*self.v*self.ds(5)
+
+		#self.L1 = self.L1 - Constant(0)*self.v*self.ds(5)
+
 		#self.L1 = self.L1-self.k*inner(Constant((0,0)), self.v)*self.ds(5)
 
 		# Pressure update

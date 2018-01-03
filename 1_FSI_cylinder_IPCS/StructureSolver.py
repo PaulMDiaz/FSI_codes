@@ -37,6 +37,7 @@ class Structure_Solver:
 
 		#self.V2_space = FunctionSpace(self.mesh, self.V2_temp)
 		self.V2_space = FunctionSpace(self.mesh, MixedElement([self.V_element, self.V_element]))
+		self.V2_space = FunctionSpace(self.mesh, self.V_element*self.V_element)
 
 		self.V = TestFunction(self.V2_space)
 		self.dU = TrialFunction(self.V2_space)
@@ -58,6 +59,11 @@ class Structure_Solver:
 		self.a_proj = inner(self.dU, self.V)*self.dx
 		self.L_proj = inner(self.u0, self.u_t)*self.dx + inner(self.v0, self.v_t)*self.dx
 		solve(self.a_proj == self.L_proj, self.U0)
+
+		# load data
+		#U_temp = np.loadtxt('nodal_U_64')
+		#self.U0.vector()[:] = U_temp
+
 		self.u0, self.v0 = split(self.U0)
 
 
@@ -167,8 +173,9 @@ class Structure_Solver:
 		#I = Identity(self.d_.cell().d)
 
 		# Kinematics
-		self.F =  variable(I + grad(self.u))		# Deformation gradient tensor
-		self.C = variable(self.F.T*self.F)			# Right Cauchy-Green tensor
+		# Only use 2nd pk stres evaluated at u_mid it seems.
+		self.F =  variable(I + grad(self.u_mid))		# Deformation gradient tensor
+		self.C =  variable(self.F.T*self.F)			# Right Cauchy-Green tensor
 
 		# Green lagrange stress tensor (green-st venant strain tensor)
 		self.E = variable(0.5*(self.C-I))
@@ -180,6 +187,7 @@ class Structure_Solver:
 		self.S2 = diff(self.psi, self.E)
 
 		# 1st piola kirchoff stress tensor
+		#evaluated at u_mid
 		self.S1 = self.F*self.S2
 
 		# Invariants of deformation tensor
@@ -199,29 +207,20 @@ class Structure_Solver:
 		n_f = FacetNormal(F.mesh)
 		n_s = FacetNormal(self.mesh)
 
+		# To be consistent, use u_mid for T_hat too...
 		self.T_hat = (self.J*inv(self.F)*self.sigma_FSI).T * n_s
-		#self.t_hat = dot(dot(self.J*inv(self.F),self.sigma_FSI), self.n_s)
+		# gives same results as index method
+		#self.T_hat = Constant((0.0, 0.0))
+		#self.T_hat = as_tensor( self.J*inv(self.F)[k, j]*self.sigma_FSI[j, i]*n_s[k] , (i, ) )
 
-		# way to record or save tractiong:
-		# "Integral of type cell cannot contain a FacetNormal" when try to project
-		#self.T_hat_2 = project(S.T_hat, S.V_space, solver_type = "mumps",\
-			#form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
-		# is likely because the normal vector is only well defined on the boundary of the domain.
+		#self.Dim = self.mesh.topology().dim()
+		#i, j, k, l, m = indices(5)
+		#self.delta = Identity(self.Dim)
 
-		#T_hat_3 = inner(S.T_hat, S.u_t)*S.ds(2)
 
-		#self.T_hat_4 = project(T_hat_3, S.V_space, solver_type = "mumps",\
-			#form_compiler_parameters = {"cpp_optimize" : True, "representation" : "quadrature", "quadrature_degree" : 2} )
-
-		# pressure at start is not physical... wait 10 time steps before applying traction.
-		if p_s.t <= 10*p_s.dt:
-			self.T_hat = Constant((0.0, 0.0))
-
-		#self.T_hat = Constant((-1.0, -1.0))
 		# Piola map
-
-		# Recieves error that array must be at least 2 dimensional. 0 degree array given.
-		#self.T_hat = dot(dot(self.J * self.sigma_FSI, inv(self.F.T) ),n_s)
+		#if p_s.t <= 10*p_s.dt:
+		#	self.T_hat = Constant((0.0, 0.0))
 
 		# solves and gives 0 displacment
 		#self.T_hat = Constant((0.0, 0.0))
@@ -232,7 +231,7 @@ class Structure_Solver:
 		# The variational form corresponding to hyperelasticity
 
 		self.L = p_s.rho_s*inner(self.v - self.v0, self.u_t)*self.dx \
-		+ self.k*inner(self.S2, grad(self.u_t))*self.dx \
+		+ self.k*inner(self.S1, grad(self.u_t))*self.dx \
 		- self.k*inner(self.B, self.u_t)*self.dx \
 		+ inner(self.u - self.u0, self.v_t)*self.dx \
 		- self.k*inner(self.v_mid, self.v_t)*self.dx
@@ -265,9 +264,9 @@ class Structure_Solver:
 		solver = NonlinearVariationalSolver(problem)
 		solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-12
 		solver.parameters["newton_solver"]["relative_tolerance"] = 1e-12
-		solver.parameters["newton_solver"]["maximum_iterations"] = 1000
-		solver.solve()
+		solver.parameters["newton_solver"]["maximum_iterations"] = 100
 
+		solver.solve()
 
 
 		# First directional derivative of Pi about d in the direction of v

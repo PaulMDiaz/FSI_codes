@@ -111,24 +111,24 @@ i_s_V_fsi_l = np.where((dofs_s_V[:,0] == 0.25) & (dofs_s_V[:,1] >= 0.19) & (dofs
 
 
 # rewrite for square problem
-i_f_V_fsi_t = np.where((dofs_f_V[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_f_V[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_f_V[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
-i_s_V_fsi_t = np.where((dofs_s_V[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_s_V[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_s_V[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
+i_f_V_fsi_t = np.where((dofs_f_V[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_f_V[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_f_V[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
+i_s_V_fsi_t = np.where((dofs_s_V[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_s_V[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_s_V[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
 
 # find indices for traction compute_forces
 # top
-i_s_S_T1 = np.where((dofs_s_S[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_s_S[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_s_S[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
-i_f_S_T1 = np.where((dofs_f_S[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_f_S[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_f_S[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
-i_f_S_T1 = np.where((dofs_f_S[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_f_S[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_f_S[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
+i_s_S_T1 = np.where((dofs_s_S[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_s_S[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_s_S[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
+i_f_S_T1 = np.where((dofs_f_S[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_f_S[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_f_S[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
+i_f_S_T1 = np.where((dofs_f_S[:,1] == p_s.H/2. + p_s.h/2.) & (dofs_f_S[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_f_S[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
 
 # bottom
-i_s_S_T2 = np.where((dofs_s_S[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_s_S[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_s_S[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
-i_s_T_T2 = np.where((dofs_s_T[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_s_T[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_s_T[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
+i_s_S_T2 = np.where((dofs_s_S[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_s_S[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_s_S[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
+i_s_T_T2 = np.where((dofs_s_T[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_s_T[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_s_T[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
 
-i_f_S_T2 = np.where((dofs_f_S[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_f_S[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_f_S[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
-i_f_T_T2 = np.where((dofs_f_T[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_f_T[:,0] >= p_s.l_s + p_s.D/2.) & (dofs_f_T[:,0] <= p_s.l_s + p_s.D/2. + p_s.l))[0]
+i_f_S_T2 = np.where((dofs_f_S[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_f_S[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_f_S[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
+i_f_T_T2 = np.where((dofs_f_T[:,1] == p_s.H/2. - p_s.h/2.) & (dofs_f_T[:,0] >= p_s.L1 + p_s.H1/2.) & (dofs_f_T[:,0] <= p_s.L1 + p_s.H1/2. + p_s.l_s))[0]
 
 # end
-i_s_S_T3 = np.where((dofs_s_S[:,0] == p_s.l_s + p_s.D/2.+ p_s.l) & (dofs_s_S[:,1] >= p_s.H/2. - p_s.h/2.) & (dofs_s_S[:,1] <= p_s.H/2. + p_s.h/2.))[0]
+i_s_S_T3 = np.where((dofs_s_S[:,0] == p_s.L1 + p_s.H1/2.+ p_s.l_s) & (dofs_s_S[:,1] >= p_s.H/2. - p_s.h/2.) & (dofs_s_S[:,1] <= p_s.H/2. + p_s.h/2.))[0]
 
 #order indices by x coordinates
 # use reording of dofs first column to adjust order of indices.
@@ -187,10 +187,11 @@ s_v=TestFunction(S.S_space)
 f_normal_stresses = Function(F.S_space)
 f_v=TestFunction(F.S_space)
 
+count = 0
 # Sequentialy staggered iteration scheme
-while p_s.t < p_s.T + DOLFIN_EPS:
+while p_s.t < p_s.T:
 	print 'STARTING TIME LOOP ITERATION ', p_s.iter_t
-	p_s.t += p_s.dt
+	p_s.t = p_s.t_vec[count]
 
 
 	for ii in range(3): #change to 3 to run properly.
@@ -283,7 +284,7 @@ while p_s.t < p_s.T + DOLFIN_EPS:
 	#print "drag and lift on cylinder and bar:", [drag, lift]
 
 	#results[count,:] = [A_disp[0], A_disp[1], drag, lift]
-	results[count,:] = [u1(0.2,0.6)[0], u1(0.2,0.6)[1], drag, lift]
+	results[count,:] = [u1(p_s.L1+p_s.H1/2+p_s.l_s,p_s.H/2)[0], u1(p_s.L1+p_s.H1/2+p_s.l_s,p_s.H/2)[1], drag, lift]
 
 
 

@@ -23,10 +23,19 @@ file_v_comp = File(pwd + 'u_f.pvd')
 file_p_comp = File(pwd + 'p_f.pvd')
 
 # Domain length and height
-L = 2.2
-H = 0.40
-D = H/8.
-l_s = L/3.
+
+H1 = 0.01
+
+
+L1 = 5.5*H1
+L2 = 14*H1
+l_s = 4*H1
+h = 0.06*H1
+L = L1 + L2
+H = 12*H1
+#H = 0.40
+#D = H/8.
+#l_s = L/3.
 
 # mesh discretization
 N = 64
@@ -34,19 +43,19 @@ N = 64
 channel = Rectangle(Point(0, 0), Point(L, H))
 
 #cylinder = Circle(Point(0.2, 0.2), 0.05, 2*N)
-cylinder = Rectangle(Point(l_s -D/2., H/2.-D/2.), Point(l_s+D/2., H/2.+D/2.))
+cylinder = Rectangle(Point(L1+H1/2., 6.*H1 - H1/2.), Point(L1+H1/2., 6.*H1 + H1/2.))
 
 # Two equivilent ways to define velocity inlet parabola
 # mean inlet velocity
 U_mean = 0.2
 # max velocity at inlet
-U_m = 0.3
+U_inlet = 0.513
 
 
 # Set parameter values
-dt = 0.01
+dt = 0.001
 #T = 6.000
-T = 6.00
+T = 0.001
 
 nu_f = 0.001    # kinematic viscosity
 rho_f = 1

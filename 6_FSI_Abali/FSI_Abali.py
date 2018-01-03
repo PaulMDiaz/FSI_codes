@@ -55,6 +55,8 @@ T_s_space = TensorFunctionSpace(mesh_s, 'P', 1)
 S_f_space = FunctionSpace(mesh_f, 'P', 1)
 V_f_space = VectorFunctionSpace(mesh_f, 'P', 1)
 T_f_space = TensorFunctionSpace(mesh_f, 'P', 1)
+
+
 # introduced by felix
 S_f = FiniteElement('P', mesh_f.ufl_cell(), 1)
 V_f = VectorElement('P', mesh_f.ufl_cell(), 1)
@@ -64,7 +66,7 @@ SV_f_space = FunctionSpace(mesh_f, SV_f)
 
 t = 0.0		# in s
 dt = 0.01	# in s
-t_end = 1.0	# in s 5 with dt 0.01
+t_end = 5.0	# in s 5 with dt 0.01
 
 pwd = './FSI_Code_Abali/'
 
@@ -196,6 +198,8 @@ u0_s = Function(V_s_space)
 u00_s = Function(V_s_space)
 sigma_f = Function(T_f_space)
 v0_f = Function(V_f_space)
+
+# Print out norms of velocities etc:
 
 while t < t_end:
 

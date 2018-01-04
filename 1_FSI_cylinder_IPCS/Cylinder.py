@@ -42,7 +42,7 @@ class problem_specific:
 		# Numerical parameters
 		self.dt = 0.001	# Time step
 		#self.T = 10.00	#  Set final time for iteration
-		self.T = 1.0#  Set final time for iteration
+		self.T = 0.005#  Set final time for iteration
 		self.N = 64		# Number of discretizations (square mesh) (place cell edge on FSI)
 
 		# Geometric parameters

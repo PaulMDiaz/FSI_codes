@@ -28,6 +28,9 @@ class Mesh_Solver:
 		# artificial viscosity
 		a = 1.0e-11		# MPa/s
 		#bc_m = [DirichletBC(F.V_space, S.d_dot, F.facets, 3)]
+
+		# implement structure velocity as boundary condition.
+		#Should this be a little different? Mesh dofs has additional nodes. 
 		u1, v1 = S.U.split(deepcopy = True)
 		bc_m = [DirichletBC(F.V_space, v1, F.facets, 3)]
 		Form_m = a*sym(grad(F.u_mesh))[i, j]*F.del_u_mesh[i].dx(j)*F.dx

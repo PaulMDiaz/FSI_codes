@@ -29,6 +29,8 @@ class Fluid_Solver(object):
 		# Variational spaces
 		self.S_space = FunctionSpace(self.mesh, self.ElementType, self.PressureElementDegree)
 		self.V_space = VectorFunctionSpace(self.mesh, self.ElementType, self.VelocityElementDegree)
+		# Abali has all degrees as 1. Doesn't seem quite right. 
+		self.V_space = VectorFunctionSpace(self.mesh, self.ElementType, self.PressureElementDegree)
 		self.T_space = TensorFunctionSpace(self.mesh, self.ElementType, self.PressureElementDegree)
 
 		## Functions for results

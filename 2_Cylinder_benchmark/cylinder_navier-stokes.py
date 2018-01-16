@@ -1,5 +1,5 @@
 """This program solves the incompressible Navier-Stokes equations
-on flow past a cyilnder using Chorin's splitting method."""
+on flow past a cyilnder using IPCS"""
 
 # Copyright (C) 2010-2011 Anders Logg
 #
@@ -39,15 +39,15 @@ parameters["std_out_all_processes"] = False;
 #mesh = Mesh("lshape.xml")
 
 # Set parameter values
-dt = 0.01
-T = 8.00
+dt = 0.0005
+T = 0.005
 
 # Domain length and height
 L = 2.5
 H = 0.41
 
 # mesh discretization
-N = 64
+N = 192
 
 channel = Rectangle(Point(0, 0), Point(L, H))
 
@@ -172,8 +172,8 @@ def sigma(u, p):
 
 
 # Tentative velocity step
-F1 = (1/k)*inner(u - u0, v)*dx \
-    + inner(grad(u0)*u0, v)*dx \
+F1 = rho_f*(1/k)*inner(u - u0, v)*dx \
+    + rho_f*inner(grad(u0)*u0, v)*dx \
     + inner(sigma(U, p0), epsilon(v))*dx \
     + inner(p0*n, v)*ds \
     - beta*nu_f*inner(grad(U).T*n, v)*ds \
@@ -267,4 +267,4 @@ while t < T + DOLFIN_EPS:
 
 # Hold plot
 #interactive()
-scipy.io.savemat('results_cylinder_64.mat', mdict={'results':results})
+scipy.io.savemat('results_cylinder_192.mat', mdict={'results':results})

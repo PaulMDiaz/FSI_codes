@@ -12,7 +12,7 @@ parameters["form_compiler"]["cpp_optimize"] = True
 # Three tests to complete
 # CSM 3 is dynamic
 
-N = 240
+N = 64
 cylinder = Circle(Point(0.2, 0.2), 0.05, N)
 # 32 corresponds to 546
 
@@ -31,19 +31,26 @@ vector = VectorFunctionSpace(mesh, "CG", 1)
 # Inserted degree for expression
 # gravity acting in body force.
 #B  = Expression(("0.0", "-2.0"), degree=2)
-rho0 = Constant(1000.0)
+rho0 = 1000.0
 B  = Constant((0.0, -2000.0))
 # B is -2000: - rho * g with g = 2.
 
 T_hat  = Constant((0.0, 0.0))
 
-nu_s = Constant(0.4)
-mu_s = Constant(0.5e6)
+nu_s = 0.4
+mu_s = 0.5e6
 #mu_s = Constant(2.0e6)
 
 E_s = mu_s*2*(1+nu_s)	# structure elastic modulus
 
-lmbda = nu_s*E_s/((1+nu_s)*(1-2*nu_s)) # 2nd lame constant
+lmbda = Constant(nu_s*E_s/((1+nu_s)*(1-2*nu_s))) # 2nd lame constant
+#- this formula has slight rounding
+
+#lmbda = Constant(2e6)
+E_s = Constant(E_s)
+mu_s = Constant(mu_s)
+nu_s = Constant(nu_s)
+rh0 = Constant(rho0)
 
 # Mixed space for computing both displacement and rate of change of displacement
 V_element = VectorElement("CG", mesh.ufl_cell() , 2)
@@ -90,6 +97,7 @@ left = Left()
 Fixed = Constant((0.0, 0.0))
 bcl = DirichletBC(mixed_space.sub(0), Fixed, left)
 bcs = [bcl]
+
 
 # Kinematics
 u_mid = 0.5*(u0 + u)
@@ -163,11 +171,11 @@ while t < T:
     count += 1
 
 #N = 64
-# scipy.io.savemat('results_7906_02.mat', mdict={'results':results})
+scipy.io.savemat('results_7906_02_1.mat', mdict={'results':results})
 # N = 128
 #scipy.io.savemat('results_29850_005.mat', mdict={'results':results})
 # N = 240
-scipy.io.savemat('results_105134_02.mat', mdict={'results':results})
+#scipy.io.savemat('results_105134_02.mat', mdict={'results':results})
 
 ## Check to see intial displacement is loaded
 #U.assign(U0)

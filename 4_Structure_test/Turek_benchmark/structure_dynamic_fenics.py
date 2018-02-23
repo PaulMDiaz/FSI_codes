@@ -122,7 +122,7 @@ S = diff(psi, E)
 # First Piola-Kirchhoff stress
 P = F*S
 
-dt = 0.02
+dt = 0.001
 k = Constant(dt)
 
 # Variational form dynamic hyperelasticity
@@ -137,7 +137,7 @@ L = L - k*inner(T_hat, xi)*ds
 a = derivative(L, U, dU)
 
 t = 0.0
-T = 10.00
+T = 0.05
 
 #problem = VariationalProblem(a, L, bcl, nonlinear = True)
 problem = NonlinearVariationalProblem(L, U, bcl, a)
@@ -171,7 +171,7 @@ while t < T:
     count += 1
 
 #N = 64
-scipy.io.savemat('results_7906_02_1.mat', mdict={'results':results})
+scipy.io.savemat('results_64_001.mat', mdict={'results':results})
 # N = 128
 #scipy.io.savemat('results_29850_005.mat', mdict={'results':results})
 # N = 240

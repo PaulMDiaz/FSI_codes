@@ -17,36 +17,37 @@ import scipy.io
 parameters["std_out_all_processes"] = False;
 set_log_level(ERROR)
 
-dt = 0.01
-T = 15.00        # final time
-
-nu = 0.001        # dynamic viscosity
-rho = 1.0         # density
-
-#nu = mu/rho    # kinematic viscosity
-mu = rho*nu     # dynamic viscosity
-
-# Domain length and height
-L = 2.5
-H = 0.41
-
-# mesh discretization
-N = 32
-
+# Folder to save solution to
 ufile = File("fluid_benchmark/velocity.pvd")
 pfile = File("fluid_benchmark/pressure.pvd")
 
-# Create mesh
+# Time parameters
+dt = 0.001       # time step
+T = 0.005       # final time
+
+# Fluid properties
+nu = 0.001      # kinematic viscosity
+rho = 1.0       # density
+mu = rho*nu     # dynamic viscosity
+
+U_mean = 0.2    # inlet mean Velocity
+U_mean = 0.0    # inlet mean Velocity
+
+# mesh discretization
+N = 64
+
+# Geometry
+L = 2.5         # domain length
+H = 0.41        # domain height
+
 channel = Rectangle(Point(0, 0), Point(L, H))
-
 cylinder = Circle(Point(0.2, 0.2), 0.05, N)
-#U_max = 0.3
-U_mean = 0.2
-
 geometry = channel - cylinder
 
+# Create mesh
 mesh = generate_mesh(geometry, N)
 
+# refine mesh, box to better capture cylinder dynamics
 h_cell = mesh.hmin()
 refine_box = AutoSubDomain(lambda x: x[0] >= 0.1 - DOLFIN_EPS and x[0] <= 0.8 + DOLFIN_EPS and x[1] >= 0.1 -DOLFIN_EPS and x[1] <= 0.3+DOLFIN_EPS)
 
@@ -194,7 +195,6 @@ A3 = assemble(a3)
 [bc.apply(A2) for bc in bcp]
 [bc.apply(A3) for bc in bcu]
 
-
 # Create progress bar
 #progress = Progress('Time-stepping')
 #set_log_level(PROGRESS)
@@ -246,10 +246,10 @@ while t < T + DOLFIN_EPS:
 
     p_diff = p1(0.15, 0.2)-p1(0.25, 0.2)
 
-    C_D = 2/(pow(U_mean,2)*2*0.05)*drag
-    C_L = 2/(pow(U_mean,2)*2*0.05)*lift
+    #C_D = 2/(pow(U_mean,2)*2*0.05)*drag
+    #C_L = 2/(pow(U_mean,2)*2*0.05)*lift
 
-    results[count,:] = [p_diff, C_D, C_L, drag, lift]
+    #results[count,:] = [p_diff, C_D, C_L, drag, lift]
 
     count += 1
 
@@ -259,7 +259,7 @@ while t < T + DOLFIN_EPS:
     print("t =", t)
     #print('u max:', u1.vector().array().max())
 
-scipy.io.savemat('cylinder_ipcs_bc_32_01_test.mat', mdict={'results':results})
+#scipy.io.savemat('cylinder_ipcs_bc_32_01_test.mat', mdict={'results':results})
 
 #np.savetxt('cylinder_ipcs_bc_128_001_test', results)
 

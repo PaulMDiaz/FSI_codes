@@ -78,11 +78,9 @@ u_s_ = Function(V_s_space, name = 'u')
 v_f_ = Function(V_f_space, name = 'v')
 p_f_ = Function(S_f_space, name = 'p')
 
-i,j, k, l, m = indices(5)
+i, j, k, l, m = indices(5)
 delta = Identity(Dim)
 f = Constant((0.0, 0.0))
-
-
 
 def s_solve(u0, u00, sigma_f, t):
 	rho_s = 8.3E-9		# tonne/mm^3

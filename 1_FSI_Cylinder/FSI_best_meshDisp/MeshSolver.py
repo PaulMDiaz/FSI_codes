@@ -35,8 +35,11 @@ class MeshSolver(object):
 		self.u1 = Function(self.vectorSpace)	# current time step mesh displacement
 
 		self.meshVelocity = Function(self.vectorSpace)
+		self.meshDisplacment = Function(self.vectorSpace)
+
 		self.num_dofs = self.vectorSpace.dim()
 
+		self.u_res = Function(self.vectorSpace, name = 'u')
 		# Define boundary conditions: addressed in Cylinder.
 		# Will have to measure displacement later.
 
@@ -133,6 +136,8 @@ class MeshSolver(object):
 		# interpolate mesh displacement to FSI interface to update interface mesh.
 		self.meshInterfaceDisplacement = interpolate(self.u1,self.interfaceMeshVectorSpace)
 
+		self.meshDisplacment = 0.5*(self.u1+self.u0)
+		
 	def Generate_Files(Structure, Fluid):
 		File("fluid_pressure.pvd") << Fluid.p1
 		File("fluid_velocity.pvd") << Fluid.u1

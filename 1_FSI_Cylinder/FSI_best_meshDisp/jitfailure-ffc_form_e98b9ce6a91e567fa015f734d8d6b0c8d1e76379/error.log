@@ -1,0 +1,25 @@
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp: In member function ‘virtual void ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379_cell_integral_main_otherwise::tabulate_tensor(double*, const double* const*, const double*, int) const’:
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:113:18: error: redeclaration of ‘const double J_c0’
+     const double J_c0 = coordinate_dofs[0] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[2] * FE20_C0_D01_Q3[0][0][1];
+                  ^
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:102:18: note: ‘const double J_c0’ previously declared here
+     const double J_c0 = coordinate_dofs[0] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[2] * FE20_C0_D01_Q3[0][0][1];
+                  ^
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:114:18: error: redeclaration of ‘const double J_c3’
+     const double J_c3 = coordinate_dofs[1] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[5] * FE20_C0_D01_Q3[0][0][1];
+                  ^
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:103:18: note: ‘const double J_c3’ previously declared here
+     const double J_c3 = coordinate_dofs[1] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[5] * FE20_C0_D01_Q3[0][0][1];
+                  ^
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:115:18: error: redeclaration of ‘const double J_c1’
+     const double J_c1 = coordinate_dofs[0] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[4] * FE20_C0_D01_Q3[0][0][1];
+                  ^
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:104:18: note: ‘const double J_c1’ previously declared here
+     const double J_c1 = coordinate_dofs[0] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[4] * FE20_C0_D01_Q3[0][0][1];
+                  ^
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:116:18: error: redeclaration of ‘const double J_c2’
+     const double J_c2 = coordinate_dofs[1] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[3] * FE20_C0_D01_Q3[0][0][1];
+                  ^
+/tmp/tmphbffra/ffc_form_e98b9ce6a91e567fa015f734d8d6b0c8d1e76379.cpp:105:18: note: ‘const double J_c2’ previously declared here
+     const double J_c2 = coordinate_dofs[1] * FE20_C0_D01_Q3[0][0][0] + coordinate_dofs[3] * FE20_C0_D01_Q3[0][0][1];
+                  ^

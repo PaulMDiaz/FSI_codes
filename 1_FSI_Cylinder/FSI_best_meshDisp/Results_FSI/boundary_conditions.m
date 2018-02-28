@@ -31,6 +31,7 @@ load('coordinates_fsi_mesh_med.mat')
 % Hmm. Could this be mesh? don't think so. Something in update. 
 % t_print = 1;
 t_length = length(traction_tensor(1,:));
+t_length = 5; 
 
 % traction_x_fluid =  traction_tensor(1:(end-1)/2,1,:);
 % traction_structure =  traction_tensor(1:(end-1)/2,3,:);
@@ -105,10 +106,14 @@ end
 
 
 % wamt tp examine sign. Therefore just one side. 
-u_structure = bar_vel_tensor(:,1,:);
-u_mesh = bar_vel_tensor(:,1,:);
-u_fluid = bar_vel_tensor(:,1,:);
+% u_structure = bar_vel_tensor(:,1,:);
+% u_mesh = bar_vel_tensor(:,1,:);
+% u_fluid = bar_vel_tensor(:,1,:);
 
+% bar_vel_tensor is 294 x 3 x 11 = npoints x struct, mesh, fluid x t_steps
+u_structure = bar_vel_tensor(:,1,:);
+u_mesh = bar_vel_tensor(:,2,:);
+u_fluid = bar_vel_tensor(:,3,:);
 
 % select just x coordinates... will look silly at bar end. 
 
@@ -133,7 +138,7 @@ for i_fsi_vel = 1: t_length;
     
     xlabel('x coordinate', 'interpreter', 'latex', 'fontsize', 20)
     ylabel('$u_{x}$', 'interpreter', 'latex', 'fontsize', 20)
-    ylim([0, 0.04]);
+    ylim([-18e-7, 5e-6]);
     
     subplot(1,2,2)
 %     hold on  
@@ -147,7 +152,7 @@ for i_fsi_vel = 1: t_length;
     
     xlabel('x coordinate', 'interpreter', 'latex', 'fontsize', 20)
     ylabel('$u_{y}$', 'interpreter', 'latex', 'fontsize', 20)
-    ylim([-0.025, 0.025]);   
+    ylim([-14e-6, 1.8e-5]);   
     title(['Time: ' num2str(t_print)])
 
     pause

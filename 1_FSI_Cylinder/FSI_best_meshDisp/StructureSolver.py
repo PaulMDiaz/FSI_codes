@@ -140,8 +140,8 @@ class StructureSolver:
 		# not confident that this will yield correct forces... compute a negative perhaps?
 
 		# in cbc, it appears that mesh is solved for as displacement...
-		self.sigma_FSI = project(fluidSolver.sigma_FSI, self.tensorSpace, solver_type = "mumps",\
-			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
+		#self.sigma_FSI = project(fluidSolver.sigma_FSI, self.tensorSpace, solver_type = "mumps",\
+			#form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
 
 		# # copy stress values on interface from fluid to structure.
 		# self.structureInterfaceStress.vector()[:] = fluidSolver.refInterfaceStress.vector().get_local()
@@ -171,6 +171,9 @@ class StructureSolver:
 		# Solves and gives too great a displacement.
 		self.n_s = FacetNormal(self.mesh)
 
+		# traction on structure.
+		# believe that traction has already been negated in fluid problem.
+		# therefore no need to do it here.
 		class FluidInterfaceTractionExpression(Expression):
 		    def eval(self, values, x):
 		        try:
@@ -181,6 +184,10 @@ class StructureSolver:
 		        return (2,)
 
 		self.fluidInterfaceTractionExpression = FluidInterfaceTractionExpression(degree=2)
+
+#		# Compute integral of transferred projection
+#		form = dot(self.G_S, self.N_S)*d_FSI
+#		integral_2 = assemble(form, exterior_facet_domains=self.problem.fsi_boundary_S)
 
 		self.L = p_s.rho_s*inner(self.v - self.v0, self.xi)*self.dx \
 		+ self.k*inner(self.P1, grad(self.xi))*self.dx \
@@ -197,8 +204,8 @@ class StructureSolver:
 		# Setup problem
 		problem = NonlinearVariationalProblem(self.L, self.U, self.bcs, self.a)
 		solver = NonlinearVariationalSolver(problem)
-		solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-12
-		solver.parameters["newton_solver"]["relative_tolerance"] = 1e-12
+		solver.parameters["newton_solver"]["absolute_tolerance"] = 1e-8
+		solver.parameters["newton_solver"]["relative_tolerance"] = 1e-8
 		solver.parameters["newton_solver"]["maximum_iterations"] = 1000
 
 		solver.solve()

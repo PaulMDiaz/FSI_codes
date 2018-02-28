@@ -241,16 +241,29 @@ class FluidSolver(object):
 		self.F = meshDisplacement
 		self.DF = grad(self.F) + Identity(2)
 		self.J = det(self.DF)
-		self.sigma_FSI1 = self.J*self.sigma_FSI1*inv(self.DF).T
 
-		# project onto tensor function space in reference domain.
+		#self.tau = p_s.mu_f*(grad(self.U_F) + grad(self.U_F).T)
+		#self.sigma_FSI1 = -self.P_F*I + self.tau
+
+		# try this sigma (from cbc) that accounts for deformation somehow.
+		self.sigma_FSI1 = p_s.mu_f*(grad(self.U_F)*inv(self.DF) + inv(self.DF).T \
+		* grad(self.U_F).T) - self.P_F*I
+
+		# Piola transform
+		self.sigma_FSI = self.J*self.sigma_FSI1*inv(self.DF).T
+
+		#### have changed name from sigma_FSI1 to sigma_FSI.
+		# project onto tensor function space in reference domain,
+		# is this necessary?
 		# send this to structure.
-		self.sigma_FSI = project(self.sigma_FSI1, self.tensorSpaceRef, solver_type = "mumps", \
-			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
+		# should accoun
+		#self.sigma_FSI = project(self.sigma_FSI, self.tensorSpaceRef, solver_type = "mumps", \
+			#form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
 
 		a_F = dot(self.tractionTest, self.tractionTrial)*self.d_FSI
 		L_F = -dot(self.tractionTest, dot(self.sigma_FSI, self.n_ref))*self.d_FSI
 
+		# traction is negated here to differ be equal and opposite fluid traction
 		A_F = assemble(a_F, keep_diagonal = True)
 		A_F.ident_zeros()
 		# # , exterior_facet_domains=fluidSolver.fsi_boundary_F)
@@ -258,6 +271,17 @@ class FluidSolver(object):
 
 		self.traction = Function(self.tractionFluidVectorSpace)
 		solve(A_F, self.traction.vector(), B_F)
+
+
+		### Debug fluid traction
+		# slight discrepency here.
+		form = dot(dot(self.sigma_FSI, self.n_ref),self.n_ref)*self.d_FSI
+		self.integral_0 = assemble(form)
+
+		# Compute integral of projected (and negated) normal traction
+		form = dot(self.traction, self.n_ref)*self.d_FSI
+		self.integral_1 = -assemble(form)
+
 
 		print ""
 		print ""

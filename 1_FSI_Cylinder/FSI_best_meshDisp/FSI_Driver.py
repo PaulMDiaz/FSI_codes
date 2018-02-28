@@ -48,7 +48,7 @@ meshSolver = MeshSolver(meshElementType, meshElementDegree, p_s)
 
 ############# Fluid Solver Setup section #################
 
-fluidElementType = 'CG'		# Lagrange is the same as CG
+fluidElementType = "CG"		# Lagrange is the same as CG
 velocityElementDegree = 2
 pressureElementDegree = 1
 fluidSolverMethod = "IPCS" # The only option available for the fluid solver is IPCS decomposition
@@ -122,7 +122,8 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 		# velocity on mesh
 
 		# Solve fluid problem for velocity and pressure
-		fluidSolver.solveFluidProblem(p_s, meshSolver.meshInterfaceVelocity, meshSolver.u1)
+
+		fluidSolver.solveFluidProblem(p_s, meshSolver.meshInterfaceVelocity, meshSolver.meshDisplacment)
 
 		# fluid velocity should match structure velocity which should match mesh velocity.
 		# fluid velocity on FSI at nodes that also appear on structure...
@@ -151,6 +152,10 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 		print "2 norm mesh and fluid velocities :", np.linalg.norm(u_m_FSI - u_f_FSI)/np.linalg.norm(u_m_FSI)
 		print "2 norm mesh and structure velocities :", np.linalg.norm(u_m_FSI - v_s_FSI)/np.linalg.norm(u_m_FSI)
 		print "2 norm fluid and structure velocities :", np.linalg.norm(u_f_FSI - v_s_FSI)/np.linalg.norm(u_f_FSI)
+
+		# hmm, traction integral on boundary does differ a smidge
+		print "integral of fluid traction:", fluidSolver.integral_0
+		print "integral of structure traction:", fluidSolver.integral_1
 
 		# displacement is not even close... how does that work? Ah, updating on every step...
 
@@ -184,6 +189,7 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
         # structureSolver.fluidInterfaceTractionExpression(p_s.dofs_m_V[p_s.i_m_V_fsi_com])
 		# Traction on interface
+		# one should be negative of the other.
 		print "2 norm fluid and structure traction :", np.linalg.norm(t_f_FSI - t_s_FSI)/np.linalg.norm(t_f_FSI)
 		# has a couple of large values...
 
@@ -224,7 +230,7 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 	#print "cylinder drag and lift = ", drag, lift
 
-	p_s.saveResults(structureSolver,fluidSolver)
+	p_s.saveResults(structureSolver, fluidSolver, meshSolver)
 
 	#Lift and drag forces acting on the whole submerged body
 	# (cylinder and structure together)
@@ -263,7 +269,6 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 	bar_vel_tensor[:, :, count] = np.column_stack((v_s_FSI, u_m_FSI, u_f_FSI))
 
 	##u11, v11 = structureSolver.U.split(deepcopy = True)
-
 	results[count,:] = [u11(0.6,0.2)[0], u11(0.6,0.2)[1], drag, lift]
 
 	##if count%500 == 0:
@@ -311,7 +316,6 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 		pwd_restart = './Restart_FSI/'
 		pwd_results = './Results_FSI/'
-
 
 		## compute and save nodal values
 		nodal_values_u = fluidSolver.u1.vector().get_local()
@@ -369,7 +373,7 @@ nodal_values_U = structureSolver.U.vector().get_local()
 np.savetxt(pwd_restart+'nodal_Ustr_1', nodal_values_U)
 
 
-scipy.io.savemat(pwd_results+'cylinder_fsi_course.mat', mdict={'results':results})
+scipy.io.savemat(pwd_results+'cylinder_fsi_stiff.mat', mdict={'results':results})
 
 scipy.io.savemat(pwd_results+'traction_mesh_med.mat', mdict={'traction_tensor':traction_tensor})
 scipy.io.savemat(pwd_results+'coordinates_fsi_traction_vector.mat', mdict={'tractionCoords':tractionCoords})

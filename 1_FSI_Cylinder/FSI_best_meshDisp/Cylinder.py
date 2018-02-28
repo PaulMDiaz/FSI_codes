@@ -13,6 +13,7 @@ class ProblemSpecific:
 		self.nu_f = 0.001	# Fluid kinematic viscosity
 		self.nu_s = 0.4	# Structure Poisson coefficient
 		self.mu_s = 0.5e6 # structure first lame constant (very small)
+		self.mu_s = 0.5e11 # structure first lame constant (very stiff, to test)
 
 		self.rho_f = 1000.0	# Fluid density (incorporated in the fluid corrected pressure as p_corr = p/rho)
 		self.rho_s = 1000.0
@@ -68,12 +69,21 @@ class ProblemSpecific:
 
 		# Define boundary meshes
 		# Set up top, end and bottom. Inelegant number for greater than, but works
+		# class FSIInterface(SubDomain):
+		#     def inside(self, x, on_boundary):
+		#         return x[0] > 0.24898979 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
+		# 		and x[1] > 0.19 - DOLFIN_EPS and x[1] < 0.19 + DOLFIN_EPS \
+		# 		or x[0] > 0.24898979 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
+		# 		and x[1] < 0.21 +DOLFIN_EPS  and x[1] > 0.21 - DOLFIN_EPS \
+		# 		or x[0] > 0.6 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
+		# 		and x[1] < 0.21 + DOLFIN_EPS and x[1] > 0.19 - DOLFIN_EPS \
+
 		class FSIInterface(SubDomain):
 		    def inside(self, x, on_boundary):
-		        return x[0] > 0.24898979 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
+		        return x[0] > 0.24 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
 				and x[1] > 0.19 - DOLFIN_EPS and x[1] < 0.19 + DOLFIN_EPS \
-				or x[0] > 0.24898979 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
-				and x[1] < 0.21 +DOLFIN_EPS  and x[1] > 0.21 - DOLFIN_EPS \
+				or x[0] > 0.24 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
+				and x[1] < 0.21 + DOLFIN_EPS  and x[1] > 0.21 - DOLFIN_EPS \
 				or x[0] > 0.6 - DOLFIN_EPS and x[0] < 0.6 + DOLFIN_EPS \
 				and x[1] < 0.21 + DOLFIN_EPS and x[1] > 0.19 - DOLFIN_EPS \
 
@@ -118,11 +128,12 @@ class ProblemSpecific:
 		U_mean = self.U_mean
 
 		# Variables to generate files
-		pwd = './Results_Cylinder_FSI_med_trial/'
+		pwd = './Results_Cylinder_FSI_med_trouble/'
 		self.file_u_s = File(pwd + 'u_s.pvd')
 		self.file_v_s = File(pwd + 'v_s.pvd')
 		self.file_v_f = File(pwd + 'v_f.pvd')
 		self.file_p_f = File(pwd + 'p_f.pvd')
+		self.file_v_m = File(pwd + 'v_m.pvd')
 
 	def computeForces(self,Mesh,mu,u,p, ds):
 		self.mesh = Mesh
@@ -180,7 +191,7 @@ class ProblemSpecific:
 		bcuWalls = DirichletBC(fluidSolver.vectorSpace, Constant((0, 0)), p_s.facetsFluid, 15)
 		bcuCylinder = DirichletBC(fluidSolver.vectorSpace, Constant((0, 0)), p_s.facetsFluid, 18)
 
-		# define expression for FSI boundary.
+		# define expression for FSI boundary
 		class FluidInterfaceVelocityExpression(Expression):
 		    def eval(self, values, x):
 		        try:
@@ -344,12 +355,15 @@ class ProblemSpecific:
 
 
 
-	def saveResults(self, structureSolver, fluidSolver):
+	def saveResults(self, structureSolver, fluidSolver, meshSolver):
 		# Save fluid velocity and pressure
 		fluidSolver.u_res.assign(fluidSolver.u1)
 		self.file_v_f << (fluidSolver.u_res, self.t)
 		fluidSolver.p_res.assign(fluidSolver.p1)
 		self.file_p_f << (fluidSolver.p_res, self.t)
+
+		meshSolver.u_res.assign(meshSolver.meshVelocity)
+		self.file_v_m << (meshSolver.u_res, self.t)
 
 		#Save structure displacement and velocity
 		# extract displacements and velocities for results...

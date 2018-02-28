@@ -31,12 +31,12 @@ t_vec_1 = [0:dt:dt*(length(lift_1)-1)];
 
 
 % load('cylinder_bar_fluid_fine.mat')
-load('cylinder_bar_fluid_med.mat')
-
-
-drag_no_traction = results(1:end-1,1); 
-lift_no_traction = results(1:end-1,2); 
-t_vec_no_traction = [0:dt:dt*(length(lift_no_traction)-1)];
+% load('cylinder_bar_fluid_med.mat')
+% 
+% 
+% drag_no_traction = results(1:end-1,1); 
+% lift_no_traction = results(1:end-1,2); 
+% t_vec_no_traction = [0:dt:dt*(length(lift_no_traction)-1)];
 
 % figure
 % plot(t_vec_64, lift_64)
@@ -108,7 +108,7 @@ h1 = plot(t_vec_1,drag_fsi*ones(1,length(t_vec_1)),'-r', 'LineWidth', 2);
 % h2 = plot(t_vec_64,drag_64,'-b', 'LineWidth', 2);
 h5 = plot(t_vec_1,drag_1,'-k', 'LineWidth', 2);
 h3 = plot(t_vec_1,drag_cfd*ones(1,length(t_vec_1)),'--r', 'LineWidth', 2);
-h4 = plot(t_vec_no_traction,drag_no_traction,'-g', 'LineWidth', 2);
+% h4 = plot(t_vec_no_traction,drag_no_traction,'-g', 'LineWidth', 2);
 
 % legend([h1,h2, h3, h4], {'True FSI', 'FSI_course','True CFD','CFD_med'},'interpreter', ...
 %         'latex', 'fontsize', 16);
@@ -122,7 +122,7 @@ h1 = plot(t_vec_1,lift_fsi*ones(1,length(t_vec_1)),'-r', 'LineWidth', 2);
 % h2 = plot(t_vec_64,lift_64,'-b', 'LineWidth', 2);
 h5 = plot(t_vec_1,lift_1,'-k', 'LineWidth', 2);
 h3 = plot(t_vec_1,lift_cfd*ones(1,length(t_vec_1)),'--r', 'LineWidth', 2);
-h4 = plot(t_vec_no_traction,lift_no_traction,'-g', 'LineWidth', 2);
+% h4 = plot(t_vec_no_traction,lift_no_traction,'-g', 'LineWidth', 2);
 
 % legend([h1,h2, h3, h4], {'True FSI', 'FSI course','True CFD','CFD_med'},'interpreter', ...
 %         'latex', 'fontsize', 16);

@@ -137,7 +137,7 @@ class ProblemSpecific:
 		U_mean = self.U_mean
 
 		# Variables to generate files
-		pwd = './Results_Cylinder_FSI_coords/'
+		pwd = './Results_Cylinder_FSI_step_000001/'
 		self.file_u_s = File(pwd + 'u_s.pvd')
 		self.file_v_s = File(pwd + 'v_s.pvd')
 		self.file_v_f = File(pwd + 'v_f.pvd')

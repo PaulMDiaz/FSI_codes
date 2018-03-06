@@ -20,7 +20,7 @@ x_vec = interfaceStructureDispCoords(:,1);
 x_vec = x_vec-min(x_vec); 
 
 % parabola to describe curve of structure
-height = 0.05; 
+height = 0.001; 
 disp_parabola = height/0.35^2*x_vec.^2; 
 
 % 0.35 is max length. 0.75 yields max of 0.091875
@@ -60,7 +60,7 @@ artifical_disp = disp_parabola*disp_t;
 % need to save artificial_disp for use in python. 
 
 % save('./artifical_disp.mat', 'artifical_disp');
-save('./artifical_disp_step_005', 'artifical_disp','-ascii');
+save('./artifical_disp_step_000001', 'artifical_disp','-ascii');
 
 figure
 plot(x_vec, y_vec)
@@ -68,9 +68,9 @@ plot(x_vec, y_vec)
 % figure
 % ylim([-0.1 0.1])
 % for i = 1:5:length(t)
-%     ylim([-0.1 0.1])
-%     plot(x_vec, artifical_disp(:,i))
-%     ylim([-0.1 0.1])
-%     pause(0.1)
-% %     hold off
+%     ylim([-0.01 0.01])
+%     plot(x_vec(2:2:end), artifical_disp(2:2:end,i))
+%     ylim([-0.01 0.01])
+%     pause
+%     hold off
 % end

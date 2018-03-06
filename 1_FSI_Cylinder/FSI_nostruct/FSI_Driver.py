@@ -111,10 +111,10 @@ dofs_u_disp = p_s.dofs_s_V[p_s.i_s_V_fsi[0::2]]
 
 # load data
 # dispMatrix = np.loadtxt('artifical_disp')
-dispMatrix = np.loadtxt('artifical_disp_T16_h0_05')
+# dispMatrix = np.loadtxt('artifical_disp_T16_h0_05')
 
 # dispMatrix = np.loadtxt('artifical_disp_T32_h0_05_square')
-# dispMatrix = np.loadtxt('artifical_disp_step_005')
+dispMatrix = np.loadtxt('artifical_disp_step_000001')
 
 # requre an additional column of zeros to set initial... maybe can avoid this.
 # size is 294 by 5001

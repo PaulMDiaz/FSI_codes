@@ -36,8 +36,17 @@ class FluidSolver(object):
 		self.u_res = Function(self.vectorSpace, name = 'u')
 		self.p_res = Function(self.scalarSpace, name = 'p')
 
+		## Peclet number
+		self.pecletSpace  = FunctionSpace(self.mesh, "DG", 1)
 
-        # called only for saving results... weird...
+		self.pecletNumber = Function(self.pecletSpace)
+		self.cfl = Function(self.pecletSpace)
+
+		# self.dofmap_Pe = self.pecletSpace.dofmap()
+		#
+		# self.dof_to_cell = [cell for cell in range(self.mesh.num_cells())
+		#                for dof in self.dofmap_Pe.cell_dofs(cell)]
+		# self.dofs_peclet = self.pecletSpace.tabulate_dof_coordinates().reshape((self.pecletSpace.dim(),-1))
 
 		# Functions for solver at previos and current time steps... could also be results...
 		self.u0 = Function(self.vectorSpace) 	# Previous time step
@@ -60,16 +69,42 @@ class FluidSolver(object):
 
 		# fluid velocity on interface, functionspace and function
 		self.interfaceFluidVectorSpace = VectorFunctionSpace(p_s.interfaceFluid, "CG", 1)
+
+		self.interfaceFluidVectorSpaceTest = VectorFunctionSpace(p_s.interfaceFluid, "CG", 1)
+
 		interfaceFluidCoords = self.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((self.interfaceFluidVectorSpace.dim(),-1))
+
+# interfaceFluidCoords = fluidSolver.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((fluidSolver.interfaceFluidVectorSpace.dim(),-1))
+
+# coordinate of degree 1 function space
+# FluidCoords = fluidSolver.vectorSpaceMesh.tabulate_dof_coordinates().reshape((fluidSolver.vectorSpaceMesh.dim(),-1))
+# find coords that correspond to point in question:
+
+# i_coords = np.where((FluidCoords[:,0] == 0.6) )
+
+# interfaceFluidCoords = fluidSolver.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((fluidSolver.interfaceFluidVectorSpace.dim(),-1))
+# fluidSolver.fluidInterfaceVelocity2 = Function(fluidSolver.interfaceFluidVectorSpace2)
+
+# fluidSolver.fluidInterfaceVelocity.vector()[:] = meshSolver.meshInterfaceVelocity.vector().get_local()
+
+# fluidSolver.fluidInterfaceVelocity2 = project(fluidSolver.fluidInterfaceVelocity, fluidSolver.interfaceFluidVectorSpace2, solver_type = "mumps", \
+	# form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
 
 		# Function for fluid interface velocity
 		self.fluidInterfaceVelocity = Function(self.interfaceFluidVectorSpace)
 		self.fluidInterfaceVelocity.vector().zero()
 
+		self.fluidInterfaceVelocityTest = Function(self.interfaceFluidVectorSpaceTest)
+		self.fluidInterfaceVelocityTest.vector().zero()
+
 		# Function for fluid interface velocity
 		self.interfaceFluidVectorSpace2 = VectorFunctionSpace(p_s.interfaceFluid, "CG", 2)
 		self.fluidInterfaceVelocity2 = Function(self.interfaceFluidVectorSpace2)
 		self.fluidInterfaceVelocity2.vector().zero()
+
+		self.fluidInterfaceVelocity2Test = Function(self.interfaceFluidVectorSpace2)
+		self.fluidInterfaceVelocity2Test.vector().zero()
+# interfaceFluidCoords2 = fluidSolver.interfaceFluidVectorSpace2.tabulate_dof_coordinates().reshape((fluidSolver.interfaceFluidVectorSpace2.dim(),-1))
 
 		# Vector function space degree 1 for copying mesh velocity to:
 		self.vectorSpaceMesh = VectorFunctionSpace(self.mesh, self.elementType, 1)
@@ -77,6 +112,16 @@ class FluidSolver(object):
 
 		self.u_current = Function(self.vectorSpaceMesh, name = 'u')
 		self.u_local = Function(self.vectorSpace, name = 'u')
+
+		self.pe = Function(self.pecletSpace, name = 'pe')
+
+		self.cfl2 = Function(self.pecletSpace, name = 'cfl')
+
+		self.u_interface = Function(self.interfaceFluidVectorSpace2, name = 'u')
+
+		# will BC work with no expression, but rather solution projected onto entire function space?
+		# maybe test some place else...
+		self.fluidVelocityBC = Function(self.vectorSpace)
 
 		# self.interfaceFluidTensorSpace = TensorFunctionSpace(p_s.interfaceFluid, "CG", 1)
 		# interfaceFluidTensorCoords = self.interfaceFluidTensorSpace.tabulate_dof_coordinates().reshape((self.interfaceFluidTensorSpace.dim(),-1))
@@ -139,14 +184,11 @@ class FluidSolver(object):
 		def sigma(u, p):
 		    return 2*p_s.mu_f*epsilon(u) - p*Identity(len(u))
 
-
-
-
 		# self.sigma_FSI = project(self.sigma_FSI1, self.tensorSpaceRef, solver_type = "mumps", \
 			# form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
 
 
-		# Tentative velocity step -where to place -self.meshVelocity??
+		# Tentative velocity step
 		self.F1 = p_s.rho_f*dot((self.u - self.u0) / self.k, self.v)*self.dx \
 				+ p_s.rho_f*dot(dot((self.u0-self.meshLocal), nabla_grad(self.u0)), self.v)*self.dx \
 				+ inner(sigma(self.U, self.p0), epsilon(self.v))*self.dx \
@@ -168,10 +210,10 @@ class FluidSolver(object):
 		self.L3 = dot(self.u1, self.v)*self.dx\
 				- self.k*dot(nabla_grad(self.p1-self.p0), self.v)*self.dx
 
-		# Assemble matrices
-		self.A1 = assemble(self.a1)
-		self.A2 = assemble(self.a2)
-		self.A3 = assemble(self.a3)
+		# # Assemble matrices
+		# self.A1 = assemble(self.a1)
+		# self.A2 = assemble(self.a2)
+		# self.A3 = assemble(self.a3)
 
 		# Use amg preconditioner if available
 		self.prec = "amg" if has_krylov_solver_preconditioner("amg") else "default"
@@ -198,14 +240,23 @@ class FluidSolver(object):
 		print ''
 		print ''
 
+		# # Assemble matrices
+		self.A1 = assemble(self.a1)
+		self.A2 = assemble(self.a2)
+		self.A3 = assemble(self.a3)
+
+
+		self.mesh.bounding_box_tree().build(self.mesh)
+
+
 		# mesh velocity is on degree 1 function space in undeformed domain.
 		# copy degree 1 to degree 1f
 		self.meshVelocityCurrent1.vector()[:] = meshVelocity.vector().get_local()
-
+# fluidSolver.meshVelocityCurrent1.vector()[:] = meshSolver.meshVelocity.vector().get_local()
+# fluidSolver.meshVelocityCurrent1.set_allow_extrapolation(True)
 		# Interpolate or project degree 1 to degree 2.
 		self.meshLocal = project(self.meshVelocityCurrent1, self.vectorSpace, solver_type = "mumps", \
 			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
-
 		self.fluidInterfaceVelocity.vector()[:] = meshInterfaceVelocity.vector().get_local()
 
 		self.fluidInterfaceVelocity2 = project(self.fluidInterfaceVelocity, self.interfaceFluidVectorSpace2, solver_type = "mumps", \
@@ -243,29 +294,31 @@ class FluidSolver(object):
 		# Step fluid solution back to reference domain.
 		# Calculate stress, then traction
 		# Step fluid solution back to reference domain
-		self.U_F0.vector()[:] = self.u0.vector()[:]
-		self.U_F1.vector()[:] = self.u1.vector()[:]
-		self.P_F0.vector()[:] = self.p0.vector()[:]
-		self.P_F1.vector()[:] = self.p1.vector()[:]
-		# take midpoint of timestep
-		self.U_F = 0.5 * (self.U_F0 + self.U_F1)
-		self.P_F = 0.5 * (self.P_F0 + self.P_F1)
-		# compute stress
-		self.tau = p_s.mu_f*(grad(self.U_F) + grad(self.U_F).T)
-		self.sigma_FSI1 = -self.P_F*I + self.tau
-		# perform piola transform
-		self.F = grad(meshDisplacement) + Identity(2)
-		self.J = det(self.F)
+		# self.U_F0.vector()[:] = self.u0.vector()[:]
+		# self.U_F1.vector()[:] = self.u1.vector()[:]
+		# self.P_F0.vector()[:] = self.p0.vector()[:]
+		# self.P_F1.vector()[:] = self.p1.vector()[:]
+		# # take midpoint of timestep
+		# self.U_F = 0.5 * (self.U_F0 + self.U_F1)
+		# self.P_F = 0.5 * (self.P_F0 + self.P_F1)
+		# # compute stress
+		# self.tau = p_s.mu_f*(grad(self.U_F) + grad(self.U_F).T)
+		# self.sigma_FSI1 = -self.P_F*I + self.tau
+		# # perform piola transform
+		# self.F = grad(meshDisplacement) + Identity(2)
+		# self.J = det(self.F)
 
 		#self.tau = p_s.mu_f*(grad(self.U_F) + grad(self.U_F).T)
 		#self.sigma_FSI1 = -self.P_F*I + self.tau
 
 		# try this sigma (from cbc) that accounts for deformation somehow.
-		self.sigma_FSI1 = p_s.mu_f*(grad(self.U_F)*inv(self.F) + inv(self.F).T \
-		* grad(self.U_F).T) - self.P_F*I
-
-		# Piola transform
-		self.sigma_FSI = self.J*self.sigma_FSI1*inv(self.F).T
+		# not really sure on the reasoning behind these additions.. perhaps remove.
+		# presently simulation breaks when traction is not moved so not a vital repair.
+		# self.sigma_FSI1 = p_s.mu_f*(grad(self.U_F)*inv(self.F) + inv(self.F).T \
+		# * grad(self.U_F).T) - self.P_F*I
+		#
+		# # Piola transform
+		# self.sigma_FSI = self.J*self.sigma_FSI1*inv(self.F).T
 
 		#### have changed name from sigma_FSI1 to sigma_FSI.
 		# project onto tensor function space in reference domain,
@@ -275,26 +328,44 @@ class FluidSolver(object):
 		#self.sigma_FSI = project(self.sigma_FSI, self.tensorSpaceRef, solver_type = "mumps", \
 			#form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
 
-		a_F = dot(self.tractionTest, self.tractionTrial)*self.d_FSI
-		L_F = -dot(self.tractionTest, dot(self.sigma_FSI, self.n_ref))*self.d_FSI
+		# a_F = dot(self.tractionTest, self.tractionTrial)*self.d_FSI
+		# L_F = -dot(self.tractionTest, dot(self.sigma_FSI, self.n_ref))*self.d_FSI
+		#
+		# # traction is negated here to differ be equal and opposite fluid traction
+		# A_F = assemble(a_F, keep_diagonal = True)
+		# A_F.ident_zeros()
+		# # # , exterior_facet_domains=fluidSolver.fsi_boundary_F)
+		# B_F = assemble(L_F)
+		#
+		# # possible I'm assembling over entire domain and lose some accuracy because of this?
+		#
+		# self.traction = Function(self.tractionFluidVectorSpace)
+		# solve(A_F, self.traction.vector(), B_F)
+		#
+		# ### Debug fluid traction
+		# # slight discrepency here.
+		# form = dot(dot(self.sigma_FSI, self.n_ref),self.n_ref)*self.d_FSI
+		# self.integral_0 = assemble(form)
+		#
+		# # Compute integral of projected (and negated) normal traction
+		# form = dot(self.traction, self.n_ref)*self.d_FSI
+		# self.integral_1 = -assemble(form)
 
-		# traction is negated here to differ be equal and opposite fluid traction
-		A_F = assemble(a_F, keep_diagonal = True)
-		A_F.ident_zeros()
-		# # , exterior_facet_domains=fluidSolver.fsi_boundary_F)
-		B_F = assemble(L_F)
-
-		self.traction = Function(self.tractionFluidVectorSpace)
-		solve(A_F, self.traction.vector(), B_F)
-
-		### Debug fluid traction
-		# slight discrepency here.
-		form = dot(dot(self.sigma_FSI, self.n_ref),self.n_ref)*self.d_FSI
-		self.integral_0 = assemble(form)
-
-		# Compute integral of projected (and negated) normal traction
-		form = dot(self.traction, self.n_ref)*self.d_FSI
-		self.integral_1 = -assemble(form)
+		# Compute Pe and CFL numbers
+		# for i_coords in range(len(self.dofs_peclet)):
+		# 	# dofs_peclet[i_coords]
+		# 	u_mag = sqrt(self.u1(self.dofs_peclet[i_coords])[0]**2 + self.u1(self.dofs_peclet[i_coords])[1]**2)
+		#
+		# 	cell_index = self.dof_to_cell[i_coords]
+		# 	# assume dx approx = dy approx = h
+		# 	cell_1 = Cell(self.mesh, cell_index)
+		# 	# cell_size = cell_1.circumradius()
+		# 	cell_size = cell_1.h()
+		#
+		#
+		# 	# Pe_dof = u_mag*cell_size/p_s.nu_f
+		# 	self.pecletNumber.vector()[i_coords] = u_mag*cell_size/p_s.nu_f
+		# 	self.cfl.vector()[i_coords] = abs(self.u1(self.dofs_peclet[i_coords])[0])*p_s.dt/cell_size + abs(self.u1(self.dofs_peclet[i_coords])[1])*p_s.dt/cell_size
 
 		print ""
 		print ""

@@ -2,15 +2,19 @@ clear all
 close all
 clc
 
-load('nodal_disp.mat')
-load('disp_coordinates.mat')
+format long 
 
-% interfaceStructureDispCoords
+load('nodal_disp.mat')
+load('disp_coordinates2.mat')
+% load('disp_coordinates3.mat')
+
+coords_length = 410; %814; % 410 %294
+interfaceStructureDispCoords = interfaceStructureDispCoords2; 
 
 % nodal_disp
 % 294 values
 
-artifical_disp = zeros(294,1); 
+artifical_disp = zeros(coords_length,1); 
 
 % try just looking at x coordinate. 
 
@@ -20,30 +24,40 @@ x_vec = interfaceStructureDispCoords(:,1);
 x_vec = x_vec-min(x_vec); 
 
 % parabola to describe curve of structure
-height = 0.001; 
+x_start = 0.24898979;
+x_end = 0.6;
+
+x_length = x_end - x_start; 
+
+height = 0.005; 
 disp_parabola = height/0.35^2*x_vec.^2; 
 
+% I miss a little bit of length... 
+
 % 0.35 is max length. 0.75 yields max of 0.091875
+
 
 
 % sin curve fot time so that deflection oscillates. 
 
 t = 0:0.001:8;
+% t = 0:0.0005:8;
+
 % artifical_disp = zeros(294,length(t)); 
 
 % Sin curve in time
-T = 32; 
+T = 1; 
 disp_t = sin((2*pi)/(T)*t); 
 
 
 % Sin^2 curve in time
-T = 32; 
-disp_t = sin((2*pi)/(T)*t).^2; 
+% T = 1; 
+% disp_t = sin((2*pi)/(T)*t).^2; 
 
 % Step function. have displacement parabola apply at t = 5. 
-T_step = 5; % time at which to apply step
-disp_t = ones(1,length(t)); 
-disp_t(1:5) = 0; 
+T_step = 2; % time at which to apply step
+% disp_t = ones(1,length(t)); 
+% disp_t(1:T_step) = 0; 
 
 
 figure
@@ -60,7 +74,10 @@ artifical_disp = disp_parabola*disp_t;
 % need to save artificial_disp for use in python. 
 
 % save('./artifical_disp.mat', 'artifical_disp');
-save('./artifical_disp_step_000001', 'artifical_disp','-ascii');
+% save('./artifical_disp_med2_h_005_stept2', 'artifical_disp','-ascii');
+
+save('./artifical_disp_med2_h_005_parabola', 'disp_parabola','-ascii');
+save('./artifical_disp_med2_h_005_time', 'disp_t','-ascii');
 
 figure
 plot(x_vec, y_vec)

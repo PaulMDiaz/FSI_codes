@@ -47,21 +47,21 @@ class ProblemSpecific:
 
 		# load meshes
 		# med, fine or course
-		self.meshStructure = Mesh('meshFiles/cylinderbar_med.xml');
-		self.facetsStructure = MeshFunction("size_t", self.meshStructure, "meshFiles/cylinderbar_med_facet_region.xml")
+		self.meshStructure = Mesh('meshFiles/cylinderbar_med2.xml');
+		self.facetsStructure = MeshFunction("size_t", self.meshStructure, "meshFiles/cylinderbar_med2_facet_region.xml")
 
 		# self.meshStructure = Mesh('cylinderbar_course.xml');
 		# self.facetsStructure = MeshFunction("size_t", self.meshStructure, "cylinderbar_course_facet_region.xml")
 
 		#self.sub_domains_structure = MeshFunction("size_t", self.meshStructure, "cylinderbar_physical_region.xml")
-		self.meshFluid = Mesh('meshFiles/cylinderfluid_med.xml');
-		self.facetsFluid = MeshFunction("size_t", self.meshFluid, "meshFiles/cylinderfluid_med_facet_region.xml")
+		self.meshFluid = Mesh('meshFiles/cylinderfluid_med2.xml');
+		self.facetsFluid = MeshFunction("size_t", self.meshFluid, "meshFiles/cylinderfluid_med2_facet_region.xml")
 		# self.meshFluid = Mesh('cylinderfluid_course.xml');
 		# self.facetsFluid = MeshFunction("size_t", self.meshFluid, "cylinderfluid_course_facet_region.xml")
 
 		# Load reference mesh on which mesh eqn is solved.
-		self.meshRef = Mesh('meshFiles/cylinderfluid_med.xml');
-		self.facetsRef = MeshFunction("size_t", self.meshRef, "meshFiles/cylinderfluid_med_facet_region.xml")
+		self.meshRef = Mesh('meshFiles/cylinderfluid_med2.xml');
+		self.facetsRef = MeshFunction("size_t", self.meshRef, "meshFiles/cylinderfluid_med2_facet_region.xml")
 
 		# numbering system:
  		# subdomans: 1 fluid, 1 Structure (seperated by resepective subsomains..)
@@ -128,12 +128,18 @@ class ProblemSpecific:
 		U_mean = self.U_mean
 
 		# Variables to generate files
-		pwd = './Results_Cylinder_FSI_med_noiteration/'
+		pwd = './Results_Cylinder_FSI_med_herewego/'
 		self.file_u_s = File(pwd + 'u_s.pvd')
 		self.file_v_s = File(pwd + 'v_s.pvd')
 		self.file_v_f = File(pwd + 'v_f.pvd')
 		self.file_p_f = File(pwd + 'p_f.pvd')
 		self.file_v_m = File(pwd + 'v_m.pvd')
+		self.file_u_m = File(pwd + 'u_m.pvd')
+		# self.file_u_current = File(pwd + 'u_current.pvd')
+		self.file_u_local = File(pwd + 'u_local.pvd')
+		# self.file_Pe = File(pwd + 'pe.pvd')
+		# self.file_cfl = File(pwd + 'cfl.pvd')
+
 
 	def computeForces(self,Mesh,mu,u,p, ds):
 		self.mesh = Mesh
@@ -191,11 +197,22 @@ class ProblemSpecific:
 		bcuWalls = DirichletBC(fluidSolver.vectorSpace, Constant((0, 0)), p_s.facetsFluid, 15)
 		bcuCylinder = DirichletBC(fluidSolver.vectorSpace, Constant((0, 0)), p_s.facetsFluid, 18)
 
-		# define expression for FSI boundary
+		# # define expression for FSI boundary
+		# class FluidInterfaceVelocityExpression(Expression):
+		#     def eval(self, values, x):
+		#         try:
+		#             # values[:] = fluidSolver.meshLocal(x)
+		#             values[:] = fluidSolver.fluidInterfaceVelocity(x)
+		#
+		#         except:
+		#             values[:] = 0
+		#     def value_shape(self):
+		#         return (2,)
+
 		class FluidInterfaceVelocityExpression(Expression):
 		    def eval(self, values, x):
 		        try:
-		            values[:] = fluidSolver.fluidInterfaceVelocity(x)
+		            values[:] = fluidSolver.meshLocal(x)
 		        except:
 		            values[:] = 0
 		    def value_shape(self):
@@ -229,18 +246,34 @@ class ProblemSpecific:
 		bcMeshOutlet = DirichletBC(meshSolver.vectorSpace, Constant((0,0)), p_s.facetsRef, 17)
 
 		# should be displacement.
-		bcMeshFSI = DirichletBC(meshSolver.vectorSpace, u12, p_s.facetsRef, 20)
+		# bcMeshFSI = DirichletBC(meshSolver.vectorSpace, u12, p_s.facetsRef, 20)
+
+		class MeshInterfaceDisplacementExpression(Expression):
+		    def eval(self, values, x):
+		        try:
+		            # values[:] = structureSolver.meshInterfaceDisplacement(x)
+		            values[:] = structureSolver.u12(x) # did have ^, but that's not calculated any place...
+		        except:
+		            values[:] = 0
+		    def value_shape(self):
+		        return (2,)
+
+		meshInterfaceDisplacementExpression = MeshInterfaceDisplacementExpression(degree=2)
+
+		bcMeshFSI = DirichletBC(meshSolver.vectorSpace, meshInterfaceDisplacementExpression, p_s.facetsRef, 20)
+		# bcMeshFSI = DirichletBC(meshSolver.vectorSpace, Constant((0,0)), p_s.facetsRef, 20)
 
 		meshSolver.bcMesh = [bcMeshInlet, bcMeshWalls, bcMeshCylinder, bcMeshOutlet, bcMeshFSI]
+
 
 	def defineInterfaceDofs(self, structureSolver, fluidSolver, meshSolver, p_s):
 
 		# Mesh solution
 		dofsMesh = meshSolver.vectorSpace.tabulate_dof_coordinates().reshape((meshSolver.vectorSpace.dim(),-1))
 		# Mesh interface
-		dofsMeshInterface = meshSolver.interfaceMeshVectorSpace.tabulate_dof_coordinates().reshape((meshSolver.interfaceMeshVectorSpace.dim(),-1))
+		# dofsMeshInterface = meshSolver.interfaceMeshVectorSpace.tabulate_dof_coordinates().reshape((meshSolver.interfaceMeshVectorSpace.dim(),-1))
 		# Fluid interface
-		dofsFluidInterface = fluidSolver.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((fluidSolver.interfaceFluidVectorSpace.dim(),-1))
+		# dofsFluidInterface = fluidSolver.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((fluidSolver.interfaceFluidVectorSpace.dim(),-1))
 		# Fluid solution
 		dofsFluid = fluidSolver.vectorSpace.tabulate_dof_coordinates().reshape((fluidSolver.vectorSpace.dim(),-1))
 
@@ -365,6 +398,10 @@ class ProblemSpecific:
 		meshSolver.u_res.assign(meshSolver.meshVelocity)
 		self.file_v_m << (meshSolver.u_res, self.t)
 
+		meshSolver.u_res.assign(meshSolver.u1)
+		self.file_u_m << (meshSolver.u_res, self.t)
+
+
 		#Save structure displacement and velocity
 		# extract displacements and velocities for results...
 		u2, v2 = structureSolver.U.split()
@@ -376,3 +413,15 @@ class ProblemSpecific:
 		#self.file_u_s << (structureSolver.u_res, self.t)
 		#structureSolver.v_res.assign(structureSolver.v)
 		#self.file_v_s << (structureSolver.v_res, self.t)
+
+		# trouble shooting mesh, save current (on mesh domain CG1, and local fluid domain too)
+		# fluidSolver.u_current.assign(fluidSolver.meshVelocityCurrent1)
+		# self.file_u_current << (fluidSolver.u_current, self.t)
+		fluidSolver.u_local.assign(fluidSolver.meshLocal)
+		self.file_u_local << (fluidSolver.u_local, self.t)
+
+		# fluidSolver.pe.assign(fluidSolver.pecletNumber)
+		# self.file_Pe << (fluidSolver.pe, self.t)
+		#
+		# fluidSolver.cfl2.assign(fluidSolver.cfl)
+		# self.file_cfl << (fluidSolver.cfl2, self.t)

@@ -37,11 +37,27 @@ class FluidSolver(object):
 		self.p_res = Function(self.scalarSpace, name = 'p')
         # called only for saving results... weird...
 
+		# ## Peclet number
+		# self.pecletSpace  = FunctionSpace(self.mesh, "DG", 1)
+		#
+		# self.pecletNumber = Function(self.pecletSpace)
+		# self.cfl = Function(self.pecletSpace)
+		#
+		# self.dofmap_Pe = self.pecletSpace.dofmap()
+		#
+		# self.dof_to_cell = [cell for cell in range(self.mesh.num_cells())
+		#                for dof in self.dofmap_Pe.cell_dofs(cell)]
+		# self.dofs_peclet = self.pecletSpace.tabulate_dof_coordinates().reshape((self.pecletSpace.dim(),-1))
+		#
+
 		# Functions for solver at previos and current time steps... could also be results...
 		self.u0 = Function(self.vectorSpace) 	# Previous time step
 		self.u1  = Function(self.vectorSpace)	# Current time step
 		self.p1 = Function(self.scalarSpace)	# Current time step
 		self.p0  = Function(self.scalarSpace)	# Previous time step
+
+
+		self.meshLocal = Function(self.vectorSpace)
 
 		# Load initial conditions to u0 and v0. Otherwise set to 0.
 		#self.u0 = Constant((0,)*self.vectorSpace.mesh().geometry().dim())
@@ -56,16 +72,28 @@ class FluidSolver(object):
 		#self.p0.vector()[:] = p_temp
 
 		# fluid velocity on interface, functionspace and function
-		self.interfaceFluidVectorSpace = VectorFunctionSpace(p_s.interfaceFluid, "CG", 1)
-		interfaceFluidCoords = self.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((self.interfaceFluidVectorSpace.dim(),-1))
+		# self.interfaceFluidVectorSpace = VectorFunctionSpace(p_s.interfaceFluid, "CG", 1)
+		# interfaceFluidCoords = self.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((self.interfaceFluidVectorSpace.dim(),-1))
 
 		# Function for fluid interface velocity
-		self.fluidInterfaceVelocity = Function(self.interfaceFluidVectorSpace)
-		self.fluidInterfaceVelocity.vector().zero()
+		# self.fluidInterfaceVelocity = Function(self.interfaceFluidVectorSpace)
+		# self.fluidInterfaceVelocity.vector().zero()
+
+		# Function for fluid interface velocity
+		# self.interfaceFluidVectorSpace2 = VectorFunctionSpace(p_s.interfaceFluid, "CG", 2)
+		# self.fluidInterfaceVelocity2 = Function(self.interfaceFluidVectorSpace2)
+		# self.fluidInterfaceVelocity2.vector().zero()
+
 
 		# Vector function space degree 1 for copying mesh velocity to:
 		self.vectorSpaceMesh = VectorFunctionSpace(self.mesh, self.elementType, 1)
 		self.meshVelocityCurrent1 = Function(self.vectorSpaceMesh) 	# Previous time step
+
+		self.u_current = Function(self.vectorSpaceMesh, name = 'u')
+		self.u_local = Function(self.vectorSpace, name = 'u')
+
+		# self.pe = Function(self.pecletSpace, name = 'pe')
+		# self.cfl2 = Function(self.pecletSpace, name = 'cfl')
 
 		# self.interfaceFluidTensorSpace = TensorFunctionSpace(p_s.interfaceFluid, "CG", 1)
 		# interfaceFluidTensorCoords = self.interfaceFluidTensorSpace.tabulate_dof_coordinates().reshape((self.interfaceFluidTensorSpace.dim(),-1))
@@ -130,10 +158,10 @@ class FluidSolver(object):
 
 		# mesh velocity is on degree 1 function space in undeformed domain.
 		# copy degree 1 to degree 1
-		self.meshVelocityCurrent1.vector()[:] = meshSolver.meshVelocity.vector().get_local()
-		# Interpolate or project degree 1 to degree 2.
-		self.meshLocal = project(self.meshVelocityCurrent1, self.vectorSpace, solver_type = "mumps", \
-			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
+		# self.meshVelocityCurrent1.vector()[:] = meshSolver.meshVelocity.vector().get_local()
+		# # Interpolate or project degree 1 to degree 2.
+		# self.meshLocal = project(self.meshVelocityCurrent1, self.vectorSpace, solver_type = "mumps", \
+		# 	form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
 
 
 		# self.sigma_FSI = project(self.sigma_FSI1, self.tensorSpaceRef, solver_type = "mumps", \
@@ -162,10 +190,7 @@ class FluidSolver(object):
 		self.L3 = dot(self.u1, self.v)*self.dx\
 				- self.k*dot(nabla_grad(self.p1-self.p0), self.v)*self.dx
 
-		# Assemble matrices
-		self.A1 = assemble(self.a1)
-		self.A2 = assemble(self.a2)
-		self.A3 = assemble(self.a3)
+
 
 		# Use amg preconditioner if available
 		self.prec = "amg" if has_krylov_solver_preconditioner("amg") else "default"
@@ -178,24 +203,39 @@ class FluidSolver(object):
 		#ufile = File("results_cylinder/velocity.pvd")
 		#pfile = File("results_cylinder/pressure.pvd")
 
-	def solveFluidProblem(self, p_s, meshInterfaceVelocity, meshDisplacement):
+	def solveFluidProblem(self, p_s, meshVelocity, meshDisplacement):
 		if self.solverMethod == "IPCS":
-			self.IPCS_Fluid_Solver(p_s, meshInterfaceVelocity, meshDisplacement)
+			self.IPCS_Fluid_Solver(p_s, meshVelocity, meshDisplacement)
 
 		else:
 			print "Error. The solver for the fluid problem should be set to IPCS"
 
-	def IPCS_Fluid_Solver(self, p_s, meshInterfaceVelocity, meshDisplacement):
+	def IPCS_Fluid_Solver(self, p_s, meshVelocity, meshDisplacement):
 		print ""
 		print ""
 		print "ENTERING FLUID SOLVER"
 		print ''
 		print ''
 
-		self.fluidInterfaceVelocity.vector()[:] = meshInterfaceVelocity.vector().get_local()
+		# Assemble matrices
+		self.A1 = assemble(self.a1)
+		self.A2 = assemble(self.a2)
+		self.A3 = assemble(self.a3)
+
+		self.mesh.bounding_box_tree().build(self.mesh)
 
 # meshSolver.meshInterfaceVelocity.vector().get_local()
 		# This should occure in initialization....  but requires defined boundaries ...
+
+		self.meshVelocityCurrent1.vector()[:] = meshVelocity.vector().get_local()
+		# Interpolate or project degree 1 to degree 2.
+		self.meshLocal = project(self.meshVelocityCurrent1, self.vectorSpace, solver_type = "mumps", \
+			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
+
+		# self.fluidInterfaceVelocity.vector()[:] = meshInterfaceVelocity.vector().get_local()
+
+		# self.fluidInterfaceVelocity2 = project(self.fluidInterfaceVelocity, self.interfaceFluidVectorSpace2, solver_type = "mumps", \
+			# form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
 
 		[bc.apply(self.A1) for bc in self.bcu]
 		[bc.apply(self.A2) for bc in self.bcp]
@@ -242,12 +282,12 @@ class FluidSolver(object):
 		self.DF = grad(self.F) + Identity(2)
 		self.J = det(self.DF)
 
-		#self.tau = p_s.mu_f*(grad(self.U_F) + grad(self.U_F).T)
-		#self.sigma_FSI1 = -self.P_F*I + self.tau
+		self.tau = p_s.mu_f*(grad(self.U_F) + grad(self.U_F).T)
+		self.sigma_FSI1 = -self.P_F*I + self.tau
 
-		# try this sigma (from cbc) that accounts for deformation somehow.
-		self.sigma_FSI1 = p_s.mu_f*(grad(self.U_F)*inv(self.DF) + inv(self.DF).T \
-		* grad(self.U_F).T) - self.P_F*I
+		# cbc computes stress in a different manner: piola in line? perhaps
+		# self.sigma_FSI1 = p_s.mu_f*(grad(self.U_F)*inv(self.DF) + inv(self.DF).T \
+		# * grad(self.U_F).T) - self.P_F*I
 
 		# Piola transform
 		self.sigma_FSI = self.J*self.sigma_FSI1*inv(self.DF).T
@@ -281,6 +321,22 @@ class FluidSolver(object):
 		# Compute integral of projected (and negated) normal traction
 		form = dot(self.traction, self.n_ref)*self.d_FSI
 		self.integral_1 = -assemble(form)
+
+		# Compute Pe and CFL numbers
+		# for i_coords in range(len(self.dofs_peclet)):
+		# 	# dofs_peclet[i_coords]
+		# 	u_mag = sqrt(self.u1(self.dofs_peclet[i_coords])[0]**2 + self.u1(self.dofs_peclet[i_coords])[1]**2)
+		#
+		# 	cell_index = self.dof_to_cell[i_coords]
+		# 	# assume dx approx = dy approx = h
+		# 	cell_1 = Cell(self.mesh, cell_index)
+		# 	# cell_size = cell_1.circumradius()
+		# 	cell_size = cell_1.h()
+		#
+		#
+		# 	# Pe_dof = u_mag*cell_size/p_s.nu_f
+		# 	self.pecletNumber.vector()[i_coords] = u_mag*cell_size/p_s.nu_f
+		# 	self.cfl.vector()[i_coords] = abs(self.u1(self.dofs_peclet[i_coords])[0])*p_s.dt/cell_size + abs(self.u1(self.dofs_peclet[i_coords])[1])*p_s.dt/cell_size
 
 
 		print ""

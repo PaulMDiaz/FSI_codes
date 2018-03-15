@@ -40,6 +40,7 @@ class MeshSolver(object):
 		self.num_dofs = self.vectorSpace.dim()
 
 		self.u_res = Function(self.vectorSpace, name = 'u')
+		# self.v_res = Function(self.vectorSpace, name = 'v')
 		# Define boundary conditions: addressed in Cylinder.
 		# Will have to measure displacement later.
 
@@ -79,11 +80,9 @@ class MeshSolver(object):
 		# self.del_u_mesh = TestFunction(self.vectorSpace)
 		# self.du_mesh = TrialFunction(self.vectorSpace)
 
-		self.interfaceMeshVectorSpace = VectorFunctionSpace(p_s.interfaceMesh, "CG", 1)
-		self.meshInterfaceVelocity = interpolate(self.meshVelocity,self.interfaceMeshVectorSpace)
-		self.interfaceMeshCoords = self.interfaceMeshVectorSpace.tabulate_dof_coordinates().reshape((self.interfaceMeshVectorSpace.dim(),-1))
-
-
+		# self.interfaceMeshVectorSpace = VectorFunctionSpace(p_s.interfaceMesh, "CG", 1)
+		# self.meshInterfaceVelocity = interpolate(self.meshVelocity,self.interfaceMeshVectorSpace)
+		# self.interfaceMeshCoords = self.interfaceMeshVectorSpace.tabulate_dof_coordinates().reshape((self.interfaceMeshVectorSpace.dim(),-1))
 
 	def meshProblemSolver(self, structureSolver, fluidSolver, p_s):
 		# def Move_Mesh(self, Structure, Fluid):
@@ -117,6 +116,8 @@ class MeshSolver(object):
 
 		# Compute mesh velocity
 		self.meshVelocity.vector()[:] = (1.0/self.k)*(self.u1.vector().get_local()-self.u0.vector().get_local())
+		self.meshVelocity.set_allow_extrapolation(True)
+
 
 		# # artificial viscosity
 		# a = 1.0e-11		# MPa/s
@@ -131,13 +132,14 @@ class MeshSolver(object):
 		# # try with no mesh movement to trouble shoot fluid solver.
         #
 		# interpolate mesh velocity solution to FSI interface
-		self.meshInterfaceVelocity = interpolate(self.meshVelocity,self.interfaceMeshVectorSpace)
+		# self.meshInterfaceVelocity = interpolate(self.meshVelocity,self.interfaceMeshVectorSpace)
 
+		# do I need these? Doubtful...
 		# interpolate mesh displacement to FSI interface to update interface mesh.
-		self.meshInterfaceDisplacement = interpolate(self.u1,self.interfaceMeshVectorSpace)
+		# self.meshInterfaceDisplacement = interpolate(self.u1,self.interfaceMeshVectorSpace)
 
 		self.meshDisplacment = 0.5*(self.u1+self.u0)
-		
+
 	def Generate_Files(Structure, Fluid):
 		File("fluid_pressure.pvd") << Fluid.p1
 		File("fluid_velocity.pvd") << Fluid.u1

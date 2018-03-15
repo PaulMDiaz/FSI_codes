@@ -118,7 +118,10 @@ class MeshSolver(object):
 
 		# Compute mesh velocity
 		self.meshVelocity.vector()[:] = (1.0/self.k)*(self.u1.vector().get_local()-self.u0.vector().get_local())
-
+		self.meshVelocity.set_allow_extrapolation(True)
+# meshSolver.meshVelocity.set_allow_extrapolation(True)
+		# for prior displacement, want velocity to always be zero.
+		# self.meshVelocity.vector().zero()
 		# # artificial viscosity
 		# a = 1.0e-11		# MPa/s
         #

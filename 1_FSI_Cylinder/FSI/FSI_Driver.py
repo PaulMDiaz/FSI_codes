@@ -111,7 +111,7 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 	p_s.t += p_s.dt
 
-	for ii in range(1):
+	for ii in range(3):
 		print ''
 		print ''
 		print 'Time loop iteration number = ', ii
@@ -123,7 +123,7 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 		# Solve fluid problem for velocity and pressure
 
-		fluidSolver.solveFluidProblem(p_s, meshSolver.meshInterfaceVelocity, meshSolver.meshDisplacment)
+		fluidSolver.solveFluidProblem(p_s, meshSolver.meshVelocity, meshSolver.meshDisplacment)
 
 		# fluid velocity should match structure velocity which should match mesh velocity.
 		# fluid velocity on FSI at nodes that also appear on structure...
@@ -151,7 +151,7 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 		print "2 norm mesh and fluid velocities :", np.linalg.norm(u_m_FSI - u_f_FSI)/np.linalg.norm(u_m_FSI)
 		print "2 norm mesh and structure velocities :", np.linalg.norm(u_m_FSI - v_s_FSI)/np.linalg.norm(u_m_FSI)
-		print "2 norm fluid and structure velocities :", np.linalg.norm(u_f_FSI - v_s_FSI)/np.linalg.norm(u_f_FSI)
+		# print "2 norm fluid and structure velocities :", np.linalg.norm(u_f_FSI - v_s_FSI)/np.linalg.norm(u_f_FSI)
 
 		# hmm, traction integral on boundary does differ a smidge
 		print "integral of fluid traction:", fluidSolver.integral_0
@@ -193,6 +193,8 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 		print "2 norm fluid and structure traction :", np.linalg.norm(t_f_FSI - t_s_FSI)/np.linalg.norm(t_f_FSI)
 		# has a couple of large values...
 
+		# update fluid mesh and fluid FSI boundary mesh with new displacements
+		# relative to reference mesh.
 
 		# compare fluid, structure and mesh velocity.
 		# mesh and structure displacement
@@ -200,6 +202,14 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 		# Solve mesh problem
 		meshSolver.meshProblemSolver(structureSolver, fluidSolver, p_s)
+
+		for i_coords in range(len(fluidSolver.mesh.coordinates())):
+			fluidSolver.mesh.coordinates()[i_coords] = meshSolver.mesh.coordinates()[i_coords] + meshSolver.u1(meshSolver.mesh.coordinates()[i_coords])
+
+		# for i_coords in range(len(p_s.interfaceFluid.coordinates())):
+			# p_s.interfaceFluid.coordinates()[i_coords] = p_s.interfaceMesh.coordinates()[i_coords] + meshSolver.meshInterfaceDisplacement(p_s.interfaceMesh.coordinates()[i_coords])
+
+
 
 	# update FSI displacement
 	disp_m_FSI_0 = disp_m_FSI_1
@@ -280,13 +290,6 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 	# for x in fluidSolver.mesh.coordinates(): x[:] += p_s.dt*meshSolver.meshVelocity(x)[:]
 
-	# update fluid mesh and fluid FSI boundary mesh with new displacements
-	# relative to reference mesh.
-	for i_coords in range(len(fluidSolver.mesh.coordinates())):
-		fluidSolver.mesh.coordinates()[i_coords] = meshSolver.mesh.coordinates()[i_coords] + meshSolver.u1(meshSolver.mesh.coordinates()[i_coords])
-
-	for i_coords in range(len(p_s.interfaceFluid.coordinates())):
-		p_s.interfaceFluid.coordinates()[i_coords] = p_s.interfaceMesh.coordinates()[i_coords] + meshSolver.meshInterfaceDisplacement(p_s.interfaceMesh.coordinates()[i_coords])
 
 		# meshSolver.mesh.coordinates()[i_coords]
 

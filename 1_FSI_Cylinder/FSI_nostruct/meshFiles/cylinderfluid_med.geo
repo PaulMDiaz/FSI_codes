@@ -17,6 +17,7 @@ cl2 = .0025; // circle
 
 cl3 = 0.025; //exit
 cl4 = 0.0025; //structure
+cl5 = 0.00125; //structure fluid end (larger velocity)
 
 //medium
 //cl1 = 0.025; //entry
@@ -24,6 +25,8 @@ cl4 = 0.0025; //structure
 
 //cl3 = 0.05; //exit
 //cl4 = 0.005; //structure
+//cl5 = 0.0025; //structure fluid end (larger velocity)
+
 
 //course
 //cl1 = 0.05; //entry
@@ -74,8 +77,8 @@ Circle(7) = {10, 5, 9};  // top left
 Circle(8) = {6, 5, 10};  // top right
 
 // Structure use points 8 and 9
-Point(11) = {0.2+radius+struct_l, 0.2-  struct_h/2, 0, cl4}; //lower right
-Point(12) = {0.2+radius+struct_l, 0.2+struct_h/2, 0, cl4};  //lower left
+Point(11) = {0.2+radius+struct_l, 0.2-  struct_h/2, 0, cl5}; //lower right
+Point(12) = {0.2+radius+struct_l, 0.2+struct_h/2, 0, cl5};  //lower left
 
 Line(9) = {7, 11};   //top
 Line(10) = {11, 12};  //end
@@ -93,8 +96,15 @@ Plane Surface(14) = {12, 13}; // plane surface on fluid region
 // Structure
 //Line Loop(2) = {24, 25, 26, 11}; // Structure boundary
 
+// Introduce refinement at end of bar
+
+Point(15) = {0.65,  0.2, 0, cl5};
+Point{15} In Surface{14};
+
+
 // Apply boundary conditions
 // IMPORTANT: "FLUID" MUST contain all fluid surfaces(2D)/volumes(3D)
+
 
 //"fluid"
 Physical Surface(1) = {14};

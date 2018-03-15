@@ -113,8 +113,16 @@ dofs_u_disp = p_s.dofs_s_V[p_s.i_s_V_fsi[0::2]]
 # dispMatrix = np.loadtxt('artifical_disp')
 # dispMatrix = np.loadtxt('artifical_disp_T16_h0_05')
 
-# dispMatrix = np.loadtxt('artifical_disp_T32_h0_05_square')
-dispMatrix = np.loadtxt('artifical_disp_step_000001')
+# dispMatrix = np.loadtxt('artifical_disp_step_05')
+# dispMatrix = np.loadtxt('artifical_disp3_T1_h_05_dt05')
+# dispMatrix = np.loadtxt('artifical_disp_med2_h_005_stept2')
+
+# try load just the t vector and the disp vector separately.
+
+
+
+# dispMatrix = np.loadtxt('artifical_disp_step_001')
+# dispMatrix = 0*dispMatrix
 
 # requre an additional column of zeros to set initial... maybe can avoid this.
 # size is 294 by 5001
@@ -125,8 +133,30 @@ dispMatrix = np.loadtxt('artifical_disp_step_000001')
 # structureSolver.meshInterfaceDisplacement = interpolate(structureSolver.u12,structureSolver.interfaceDispVectorSpace)
 
 # meshInterfaceDisplacement = Function(structureSolver.interfaceDispVectorSpace)
-disp_temp0 = np.ascontiguousarray(dispMatrix[:,0], dtype = np.float64)
-disp_temp1 = np.ascontiguousarray(dispMatrix[:,0], dtype = np.float64)
+# disp_temp0 = np.ascontiguousarray(dispMatrix[:,0], dtype = np.float64)
+# disp_temp1 = np.ascontiguousarray(dispMatrix[:,0], dtype = np.float64)
+
+# dispParabola = np.loadtxt('artifical_disp_med2_h_005_parabola')
+# dispTime = np.loadtxt('artifical_disp_med2_h_005_time')
+
+struct_coords = np.loadtxt('struct_coords')
+x_min = min(struct_coords[:,0])
+x_max = max(struct_coords[:,0])
+x_length = x_max - x_min;
+
+height = 0.005;
+
+period = 1;
+dispParabola = height/x_length**2.0*(struct_coords[:,0]-x_min)**2;
+dispParabola[0::2] = 0 
+# set y values to 0.
+
+# dispTime = sin((2.0*pi)/(period)*p_s.t)
+
+
+disp_temp0 = np.ascontiguousarray(0*dispParabola, dtype = np.float64)
+disp_temp1 = np.ascontiguousarray(0*dispParabola, dtype = np.float64)
+
 
 # Sequentialy staggered iteration scheme
 while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
@@ -135,12 +165,15 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 	p_s.t += p_s.dt
 
 	# artificially set structure displacement
-	disp_temp1 = np.ascontiguousarray(dispMatrix[:,count], dtype = np.float64)
+	# disp_temp1 = np.ascontiguousarray(dispMatrix[:,count], dtype = np.float64)
+	# disp_temp1 = np.ascontiguousarray(dispTime[count]*dispParabola, dtype = np.float64)
+	disp_temp1 = np.ascontiguousarray(sin((2.0*pi)/(period)*p_s.t)*dispParabola, dtype = np.float64)
+
 	# structureSolver.meshInterfaceDisplacement.vector()[:] = disp_temp
 
 	structureSolver.meshInterfaceDisplacement.vector()[:] = disp_temp1
 
-	for ii in range(2):
+	for ii in range(3):
 		print ''
 		print ''
 		print 'Time loop iteration number = ', ii
@@ -150,8 +183,20 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
         # changes fluid solution which updates traction on structure which updates
 		# velocity on mesh
 
-		# Solve fluid problem for velocity and pressure
 
+		# Boundary vector function fluidInterfaceVelocity2 breaks down for some coordinates at a given time step approx 108
+		# It does not break when only mesh is done.
+		# write analogous mesh  here to compare to.
+
+		# Interpolate or project degree 1 to degree 2.
+
+		fluidSolver.fluidInterfaceVelocityTest.vector()[:] = meshSolver.meshInterfaceVelocity.vector().get_local()
+
+		# This is the function used in BC which seems to break after approx 80 time steps
+		fluidSolver.fluidInterfaceVelocity2Test = project(fluidSolver.fluidInterfaceVelocityTest, fluidSolver.interfaceFluidVectorSpace2, solver_type = "mumps", \
+			form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
+
+		# Solve fluid problem for velocity and pressure
 		fluidSolver.solveFluidProblem(p_s, meshSolver.meshInterfaceVelocity, meshSolver.meshDisplacement, meshSolver.meshVelocity)
 
 		# fluid velocity should match structure velocity which should match mesh velocity.
@@ -162,8 +207,6 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 		# Structure displacement and velocity on FSI
 		u11, v11 = structureSolver.U.split(deepcopy = True)
 		u10, v10 = structureSolver.U0.split(deepcopy = True)
-
-
 
 		# u_s_FSI = u11.vector()[p_s.i_s_V_fsi]
 		u_s_FSI = disp_temp1
@@ -215,9 +258,9 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 		print "2 norm mesh and structure velocities :", np.linalg.norm(u_m_FSI - v_s_FSI)/np.linalg.norm(u_m_FSI)
 		# print "2 norm fluid and structure velocities :", np.linalg.norm(u_f_FSI - v_s_FSI)/np.linalg.norm(u_f_FSI)
 
-		# hmm, traction integral on boundary does differ a smidge
-		print "integral of fluid traction:", fluidSolver.integral_0
-		print "integral of structure traction:", fluidSolver.integral_1
+		# # hmm, traction integral on boundary does differ a smidge
+		# print "integral of fluid traction:", fluidSolver.integral_0
+		# print "integral of structure traction:", fluidSolver.integral_1
 
 		# displacement is not even close... how does that work? Ah, updating on every step...
 
@@ -233,13 +276,13 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 		# Solve structure problem for displacement and velocity
 		# structureSolver.structureProblemSolver(p_s, fluidSolver)
 
-		t_f_FSI = fluidSolver.traction.vector()[p_s.i_m_V_fsi_com]
+		# t_f_FSI = fluidSolver.traction.vector()[p_s.i_m_V_fsi_com]
 
 		# in structure solver traction is applied with an expression.
 		# structureSolver.fluidInterfaceTractionExpression
-		tractionCoords = p_s.dofs_m_V[p_s.i_m_V_fsi_com]
+		# tractionCoords = p_s.dofs_m_V[p_s.i_m_V_fsi_com]
 
-		t_s_FSI = 0*t_f_FSI
+		# t_s_FSI = 0*t_f_FSI
 
 		# for i_traction in range(tractionCoords.size/4):
 			# step through every second coordinate. (size of coords is 2x length) append x and then y values
@@ -272,8 +315,7 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 		print "2 norm mesh and structure displacement :", np.linalg.norm(u_s_FSI - disp_m_FSI)/np.linalg.norm(u_s_FSI)
 
-		# should I update with current mesh displacement or midpoint?
-		# Current:
+		# Update fluid mesh coordinates
 		for i_coords in range(len(fluidSolver.mesh.coordinates())):
 			fluidSolver.mesh.coordinates()[i_coords] = meshSolver.mesh.coordinates()[i_coords] + meshSolver.u1(meshSolver.mesh.coordinates()[i_coords])
 
@@ -355,12 +397,12 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 	# size i_f_S_fsi.size, 4, dt
 	# traction_tensor[:,:,count] = np.column_stack((f_Traction_x,f_Traction_y,s_Traction_x,s_Traction_y))
-	traction_tensor[:,count] = t_s_FSI
+	# traction_tensor[:,count] = t_s_FSI
 
-	bar_vel_tensor[:, :, count] = np.column_stack((v_s_FSI, u_m_FSI, u_f_FSI))
+	# bar_vel_tensor[:, :, count] = np.column_stack((v_s_FSI, u_m_FSI, u_f_FSI))
 
 	##u11, v11 = structureSolver.U.split(deepcopy = True)
-	results[count,:] = [u11(0.6,0.2)[0], u11(0.6,0.2)[1], drag, lift]
+	# results[count,:] = [u11(0.6,0.2)[0], u11(0.6,0.2)[1], drag, lift]
 
 	##if count%500 == 0:
 		##scipy.io.savemat('cylinder_fsi_course_1.mat', mdict={'results':results})
@@ -460,6 +502,11 @@ nodal_values_disp = meshSolver.u0.vector().get_local()
 np.savetxt(pwd_restart+'nodal_m_disp0', nodal_values_disp)
 
 
+# np.savetxt('struct_coords',structureSolver.interfaceStructureDispCoords)
+
+
+np.savetxt(pwd_restart+'nodal_m_disp0', nodal_values_disp)
+
 # try saving just the U
 #u, v = structureSolver.U.split()
 nodal_values_U = structureSolver.U.vector().get_local()
@@ -483,3 +530,123 @@ scipy.io.savemat(pwd_results+'disp_coordinates.mat', mdict={'interfaceStructureD
 # disp vector to see what it looks like:
 nodal_disp = structureSolver.meshInterfaceDisplacement.vector().get_local()
 scipy.io.savemat(pwd_results+'nodal_disp.mat', mdict={'nodal_disp':nodal_disp})
+
+
+### Some trouble shooting script
+
+# pwd = './Results_Cylinder_trouble_shooting/'
+
+
+# # save fluid before movement
+#
+# # save mesh before movement
+# file_u_m_before = File(pwd + 'u_f.pvd')
+# file_u_m_before << (meshSolver.u1)
+#
+# # move mesh
+#
+# # first set displacement
+# disp_temp1 = np.ascontiguousarray(dispMatrix[:,5], dtype = np.float64)
+# # structureSolver.meshInterfaceDisplacement.vector()[:] = disp_temp
+#
+# structureSolver.meshInterfaceDisplacement.vector()[:] = disp_temp1
+# meshSolver.meshProblemSolver(disp_temp1, fluidSolver, p_s)
+#
+# # update mesh coordiantes
+# for i_coords in range(len(fluidSolver.mesh.coordinates())):
+# 	fluidSolver.mesh.coordinates()[i_coords] = meshSolver.mesh.coordinates()[i_coords] + meshSolver.u1(meshSolver.mesh.coordinates()[i_coords])
+#
+# for i_coords in range(len(p_s.interfaceFluid.coordinates())):
+# 	p_s.interfaceFluid.coordinates()[i_coords] = p_s.interfaceMesh.coordinates()[i_coords] + meshSolver.meshInterfaceDisplacement(p_s.interfaceMesh.coordinates()[i_coords])
+#
+# # save fluid after movement - perhaps this will not see updated mesh
+# file_u_f_after = File(pwd + 'u_f1.pvd')
+# file_u_f_after << (fluidSolver.u1)
+#
+# # save mesh displacement
+# file_u_m = File(pwd + 'u_m.pvd')
+# file_u_m << (meshSolver.u1)
+# # save mesh velocity
+# file_v_m = File(pwd + 'v_m.pvd')
+# file_v_m << (meshSolver.meshVelocity)
+#
+#
+# fluidSolver.meshVelocityCurrent1.vector()[:] = meshSolver.meshVelocity.vector().get_local()
+#
+# # Interpolate or project degree 1 to degree 2.
+# meshLocal = project(fluidSolver.meshVelocityCurrent1, fluidSolver.vectorSpace, solver_type = "mumps", \
+# 	form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
+#
+# # Compute fluid velocity - mesh velocity and save This
+#
+# u_augmented = fluidSolver.u1
+# u_augmented.vector()[:] = fluidSolver.u1.vector().get_local() - meshLocal.vector().get_local()
+#
+# # save mesh local
+# # save mesh velocity
+# file_v_m_local = File(pwd + 'v_m_local.pvd')
+# file_v_m_local << (meshLocal)
+#
+# file_u_augmented = File(pwd + 'u_augmented.pvd')
+# file_u_augmented << (u_augmented)
+
+# Peclet number calculation
+
+
+# # DG scalar space for Peclet number
+# pecletSpace  = FunctionSpace(fluidSolver.mesh, "DG", 1)
+# pecletNumber = Function(pecletSpace2)
+#
+# # map cells to dofs
+# dofmap = pecletSpace2.dofmap()
+# dof_to_cell = [cell for cell in range(fluidSolver.mesh.num_cells())
+#                for dof in dofmap.cell_dofs(cell)]
+#
+# # step through dofs, identify appropriate cell, compute Pe
+# dofs_peclet = pecletSpace2.tabulate_dof_coordinates().reshape((pecletSpace2.dim(),-1))
+#
+# for i_coords in range(len(dofs_peclet)):
+# 	# dofs_peclet[i_coords]
+# 	u_mag = sqrt(fluidSolver.u1(dofs_peclet[i_coords])[0]**2 + fluidSolver.u1(dofs_peclet[i_coords])[1]**2)
+#
+# 	cell_index = dof_to_cell[i_coords]
+# 	cell_1 = Cell(fluidSolver.mesh, cell_index)
+# 	cell_size = cell_1.circumradius()
+#
+# 	# Pe_dof = u_mag*cell_size/p_s.nu_f
+# 	pecletNumber.vector()[i_coords] = u_mag*cell_size/p_s.nu_f
+#
+# # Save Peclet number
+# pwd = './Results_Cylinder_trouble_shooting/'
+# file_Pe = File(pwd + 'Pe.pvd')
+# file_Pe << (pecletNumber)
+
+
+
+# Could I step through coordinates of cells instead?
+
+# step through coordinates
+# dir(fluidSolver.mesh)
+
+	# store Pe for all cells... save to file?
+	# could save a Peclet number for each vertex... then take average. Yeah.
+# calc norm of fluid velocity
+
+# Load reference mesh on which mesh eqn is solved.
+
+
+### find coordinates for artificial displacement.
+meshStruct2 = Mesh('meshFiles/cylinderbar_fine2.xml');
+facetsMeshStruct2 = MeshFunction("size_t", meshStruct2, "meshFiles/cylinderbar_med2_facet_region.xml")
+
+# restrict mesh to exterior boundaries only:
+boundaryStructure2 = BoundaryMesh(meshStruct2, 'exterior')
+interfaceStructure2 = SubMesh(boundaryStructure2, p_s.fSIInterface)
+
+interfaceDispVectorSpace2 = VectorFunctionSpace(interfaceStructure2, "CG", 1)
+
+interfaceStructureDispCoords2 = interfaceDispVectorSpace2.tabulate_dof_coordinates().reshape((interfaceDispVectorSpace2.dim(),-1))
+
+# save coordinates and vector values for structure displacement.
+# interfaceStructureDispCoords = structureSolver.interfaceStructureDispCoords
+scipy.io.savemat(pwd_results+'disp_coordinates3.mat', mdict={'interfaceStructureDispCoords2':interfaceStructureDispCoords2})

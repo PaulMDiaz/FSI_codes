@@ -1,0 +1,216 @@
+clear all
+close all
+clc
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% Test Boundary Conditions: Traction %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% traction on, iterates 3 times
+% % load('traction_tensor_2.mat')   
+load('traction_mesh_med.mat')
+load('coordinates_fsi_traction_vector')
+
+load('bar_vel_tensor_mesh_med.mat')
+
+load('coordinates_fsi_mesh_med.mat')
+
+% traction on, does not iterate
+% load('bar_vel_tensor_3.mat')
+% traction on, does not iterate. 
+% load('traction_tensor_3.mat')
+% traction off, does not iteate. 
+% load('traction_tensor_no_traction.mat')
+
+% % traction from fluid does not change sign. in any case... whaat?
+
+% looking specifically at changing y. Therefore just inspect half of FSI. 
+
+% case 2. traction varies between time steps. sign of y velocity changes. 
+% case 3. traction varies between time steps. sign of y velocity changes.
+% Hmm. Could this be mesh? don't think so. Something in update. 
+% t_print = 1;
+t_length = length(traction_tensor(1,:));
+t_length = 5; 
+
+% traction_x_fluid =  traction_tensor(1:(end-1)/2,1,:);
+% traction_structure =  traction_tensor(1:(end-1)/2,3,:);
+% traction_y_fluid = traction_tensor(1:(end-1)/2,2,:);
+% traction_y_structure = traction_tensor(1:(end-1)/2,4,:);
+
+% just use traction_tensor
+
+traction_x_structure = traction_tensor(1:2:end,:);
+traction_y_structure = traction_tensor(2:2:end,:);
+% look just at x coords (lower left to right, end, upper right to left)
+traction_coords = tractionCoords(1:2:end,1)
+
+figure 
+for i_traction = 1: t_length;
+    t_print = i_traction; 
+    
+%     hold on 
+    subplot(1,2,1)      
+    h1 = plot(traction_coords,traction_x_structure(:,t_print), 'xb', 'LineWidth', 2);
+%     hold off
+%     legend([h1,h2], {'fluid','structure'},'interpreter', ...
+%             'latex', 'fontsize', 16);
+    
+    xlabel('FSI nodal point', 'interpreter', 'latex', 'fontsize', 20)
+    ylabel('$F_{x}$', 'interpreter', 'latex', 'fontsize', 20)
+    ylim([-300, 400]);
+%     xlim([0, 80]);
+
+    
+    subplot(1,2,2)
+    h1 = plot(traction_coords,traction_y_structure(:,t_print), 'xb', 'LineWidth', 2);
+    hold off
+%     legend([h1,h2], {'$T_{fluid}$','$T_{structure}$'},'interpreter', ...
+%             'latex', 'fontsize', 16);
+    
+    xlabel('FSI nodal point', 'interpreter', 'latex', 'fontsize', 20)
+    ylabel('$F_{y}$', 'interpreter', 'latex', 'fontsize', 20)
+    ylim([-500, 500]); 
+%     xlim([0, 80]);
+    title(['Time: ' num2str(t_print)])
+
+    pause
+end 
+
+% hold off 
+% ylim([0.11, 0.135])
+% 
+% figure
+% subplot(1,2,2)
+% hold on 
+% h1 = plot(traction_tensor(:,2,t_print), '-r', 'LineWidth', 2);
+% h2 = plot(-traction_tensor(:,4,t_print), '--b', 'LineWidth', 2);
+% legend([h1,h2], {'fluid','structure'},'interpreter', ...
+%         'latex', 'fontsize', 16);
+% hold off
+% xlabel('FSI nodal point', 'interpreter', 'latex', 'fontsize', 20)
+% ylabel('$F_{y}$', 'interpreter', 'latex', 'fontsize', 20)
+% % ylim([0.11, 0.135])
+
+% load fluid, mesh and structure velocites. should all match. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% Test Boundary Conditions: Fluid, Structure and Mesh velocities %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+ 
+% load('bar_vel_tensor_no_traction.mat')
+% results in no velocity, as expected. 
+
+
+% wamt tp examine sign. Therefore just one side. 
+% u_structure = bar_vel_tensor(:,1,:);
+% u_mesh = bar_vel_tensor(:,1,:);
+% u_fluid = bar_vel_tensor(:,1,:);
+
+% bar_vel_tensor is 294 x 3 x 11 = npoints x struct, mesh, fluid x t_steps
+u_structure = bar_vel_tensor(:,1,:);
+u_mesh = bar_vel_tensor(:,2,:);
+u_fluid = bar_vel_tensor(:,3,:);
+
+% select just x coordinates... will look silly at bar end. 
+
+coordinates_fsi_Vector_1 = coordinates_fsi_Vector(1:2:end/2-1,1); 
+t_print = 1;
+t_length = length(bar_vel_tensor(1,1,:));
+
+% Plot velocites for each time step. Seperate into x and y, plot against
+% coordinates... 
+figure
+for i_fsi_vel = 1: t_length;
+    t_print = i_fsi_vel; 
+    subplot(1,2,1)
+%     hold on  
+    h1 = plot(coordinates_fsi_Vector_1,u_structure(1:2:end/2-1,1,t_print), 'sr', 'LineWidth', 2, 'MarkerSize',10);   
+    hold on  
+    h2 = plot(coordinates_fsi_Vector_1,u_mesh(1:2:end/2-1,1,t_print), 'ob', 'LineWidth', 2, 'MarkerSize',10);
+    h3 = plot(coordinates_fsi_Vector_1,u_fluid(1:2:end/2-1,1,t_print), 'xg', 'LineWidth', 2, 'MarkerSize',10);
+    hold off
+    legend([h1,h2,h3], {'structure','mesh','fluid'},'interpreter', ...
+            'latex', 'fontsize', 16);
+    
+    xlabel('x coordinate', 'interpreter', 'latex', 'fontsize', 20)
+    ylabel('$u_{x}$', 'interpreter', 'latex', 'fontsize', 20)
+    ylim([-18e-7, 5e-6]);
+    
+    subplot(1,2,2)
+%     hold on  
+    h1 = plot(coordinates_fsi_Vector_1,u_structure(2:2:end/2-1,1,t_print), 'sr', 'LineWidth', 2, 'MarkerSize',10);   
+    hold on  
+    h2 = plot(coordinates_fsi_Vector_1,u_mesh(2:2:end/2-1,1,t_print), 'ob', 'LineWidth', 2, 'MarkerSize',10);
+    h3 = plot(coordinates_fsi_Vector_1,u_fluid(2:2:end/2-1,1,t_print), 'xg', 'LineWidth', 2, 'MarkerSize',10);
+    hold off
+    legend([h1,h2,h3], {'structure','mesh','fluid'},'interpreter', ...
+            'latex', 'fontsize', 16);
+    
+    xlabel('x coordinate', 'interpreter', 'latex', 'fontsize', 20)
+    ylabel('$u_{y}$', 'interpreter', 'latex', 'fontsize', 20)
+    ylim([-14e-6, 1.8e-5]);   
+    title(['Time: ' num2str(t_print)])
+
+    pause
+end 
+
+m = u_mesh(2:2:end/2-1,1,t_print); 
+s = u_structure(2:2:end/2-1,1,t_print);
+f = u_fluid(2:2:end/2-1,1,t_print);
+% load('u_m_FSI_2.mat')
+% load('v_s_FSI_2.mat')
+% load('u_f_FSI_2.mat')
+
+
+
+% % seperate x and y. 
+% u_m_x = u_m_FSI(1:2:end);
+% u_m_y = u_m_FSI(2:2:end);
+% v_s_x = v_s_FSI(1:2:end);
+% v_s_y = v_s_FSI(2:2:end);
+% u_f_x = u_f_FSI(1:2:end);
+% u_f_y = u_f_FSI(2:2:end);
+
+%reverse top row for continuity of nodes
+% This only works for the given mesh so not an excellent solution
+% u_m_x(141:end) = u_m_x(end:-1:141); 
+% u_m_y(141:end) = u_m_y(end:-1:141); 
+% v_s_x(141:end) = v_s_x(end:-1:141); 
+% v_s_y(141:end) = v_s_y(end:-1:141); 
+% u_f_x(141:end) = u_f_x(end:-1:141); 
+% u_f_y(141:end) = u_f_y(end:-1:141);
+% n_reverse = 141;
+% u_m_x(n_reverse:end) = u_m_x(end:-1:n_reverse); 
+% u_m_y(n_reverse:end) = u_m_y(end:-1:n_reverse); 
+% v_s_x(n_reverse:end) = v_s_x(end:-1:n_reverse); 
+% v_s_y(n_reverse:end) = v_s_y(end:-1:n_reverse); 
+% u_f_x(n_reverse:end) = u_f_x(end:-1:n_reverse); 
+% u_f_y(n_reverse:end) = u_f_y(end:-1:n_reverse);
+% % Nodes for this plot go bottom left to right, up the end then jump to top
+% % left to right. (when mesh in question is there... )
+
+% figure
+% subplot(1,2,1)
+% hold on 
+% plot(u_m_x, 'r', 'Linewidth', 2)
+% plot(u_f_x, '-.k', 'Linewidth', 2)
+% plot(v_s_x, '--b', 'Linewidth', 2)
+% xlabel('FSI nodes')
+% ylabel('x velocity')
+% hold off
+
+% subplot(1,2,2)
+% hold on 
+% h1 = plot(u_m_y, 'r', 'Linewidth', 2);
+% h2 = plot(u_f_y, '-.k', 'Linewidth', 2);
+% h3 = plot(v_s_y, '--b', 'Linewidth', 2);
+% xlabel('FSI nodes')
+% ylabel('y velocity')
+% hold off
+% legend([h1,h2, h3], {'$u_{mesh}$','$u_{fluid}$', '$u_{struct}$'},'interpreter', ...
+%             'latex', 'fontsize', 16);
+% 

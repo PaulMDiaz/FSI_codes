@@ -54,14 +54,14 @@ class ProblemSpecific:
 		# self.facetsStructure = MeshFunction("size_t", self.meshStructure, "cylinderbar_course_facet_region.xml")
 
 		#self.sub_domains_structure = MeshFunction("size_t", self.meshStructure, "cylinderbar_physical_region.xml")
-		self.meshFluid = Mesh('meshFiles/cylinderfluid_med2.xml');
-		self.facetsFluid = MeshFunction("size_t", self.meshFluid, "meshFiles/cylinderfluid_med2_facet_region.xml")
+		self.meshFluid = Mesh('meshFiles/cylinderfluid_med5.xml');
+		self.facetsFluid = MeshFunction("size_t", self.meshFluid, "meshFiles/cylinderfluid_med5_facet_region.xml")
 		# self.meshFluid = Mesh('cylinderfluid_course.xml');
 		# self.facetsFluid = MeshFunction("size_t", self.meshFluid, "cylinderfluid_course_facet_region.xml")
 
 		# Load reference mesh on which mesh eqn is solved.
-		self.meshRef = Mesh('meshFiles/cylinderfluid_med2.xml');
-		self.facetsRef = MeshFunction("size_t", self.meshRef, "meshFiles/cylinderfluid_med2_facet_region.xml")
+		self.meshRef = Mesh('meshFiles/cylinderfluid_med5.xml');
+		self.facetsRef = MeshFunction("size_t", self.meshRef, "meshFiles/cylinderfluid_med5_facet_region.xml")
 
 		# numbering system:
  		# subdomans: 1 fluid, 1 Structure (seperated by resepective subsomains..)
@@ -128,7 +128,7 @@ class ProblemSpecific:
 		U_mean = self.U_mean
 
 		# Variables to generate files
-		pwd = './Results_Cylinder_FSI_med_herewego/'
+		pwd = './Results_Cylinder_FSI_med_refined_dt001/'
 		self.file_u_s = File(pwd + 'u_s.pvd')
 		self.file_v_s = File(pwd + 'v_s.pvd')
 		self.file_v_f = File(pwd + 'v_f.pvd')
@@ -212,7 +212,8 @@ class ProblemSpecific:
 		class FluidInterfaceVelocityExpression(Expression):
 		    def eval(self, values, x):
 		        try:
-		            values[:] = fluidSolver.meshLocal(x)
+					values[:] = fluidSolver.meshLocal(x)
+					# values[:] = fluidSolver.fluidInterfaceVelocity2(x)
 		        except:
 		            values[:] = 0
 		    def value_shape(self):

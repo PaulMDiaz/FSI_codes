@@ -42,7 +42,7 @@ class ProblemSpecific:
 		# self.dt = 0.001 # Time step
 		self.dt = 0.001 # Time step
 
-		self.T = 1.000 #  Set final time for iteration
+		self.T = 0.110 #  Set final time for iteration
 
 		# Geometric parameters
 		self.L = 2.5 	#Channel length
@@ -151,7 +151,7 @@ class ProblemSpecific:
 		U_mean = self.U_mean
 
 		# Variables to generate files
-		pwd = './Results_Cylinder_FSI_med_nu001_dt001/'
+		pwd = './Results_Cylinder_FSI_med_nu001_dt001_bbtree/'
 		# self.file_u_s = File(pwd + 'u_s.pvd')
 		# self.file_v_s = File(pwd + 'v_s.pvd')
 		self.file_v_f = File(pwd + 'v_f.pvd')

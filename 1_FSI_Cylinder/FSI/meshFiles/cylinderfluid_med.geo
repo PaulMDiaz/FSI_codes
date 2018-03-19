@@ -12,20 +12,20 @@
 // Adjust as necessary
 
 //fine
-cl1 = 0.0125; //entry
-cl2 = .0025; // circle
+//cl1 = 0.0125; //entry
+//cl2 = .0025; // circle
 
-cl3 = 0.025; //exit
-cl4 = 0.0025; //structure
-cl5 = 0.00125; //structure fluid end (larger velocity)
+//cl3 = 0.025; //exit
+//cl4 = 0.0025; //structure
+//cl5 = 0.00125; //structure fluid end (larger velocity)
 
 //medium
-//cl1 = 0.025; //entry
-//cl2 = .005; // circle
+cl1 = 0.0125; //entry
+cl2 = .005; // circle
 
-//cl3 = 0.05; //exit
-//cl4 = 0.005; //structure
-//cl5 = 0.0025; //structure fluid end (larger velocity)
+cl3 = 0.025; //exit
+cl4 = 0.005; //structure
+cl5 = 0.0025; //structure fluid end (larger velocity)
 
 
 //course

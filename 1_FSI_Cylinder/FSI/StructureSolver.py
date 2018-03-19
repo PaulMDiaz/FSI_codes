@@ -52,9 +52,9 @@ class StructureSolver:
 		self.L_proj = inner(self.u0, self.xi)*self.dx + inner(self.v0, self.eta)*self.dx
 		solve(self.a_proj == self.L_proj, self.U0)
 
-		# load data
-		#U_temp = np.loadtxt('nodal_U_64')
-		#self.U0.vector()[:] = U_temp
+		# load saved data
+		# U_temp = np.loadtxt('Restart_FSI/nodal_Ustr_1') 
+		# self.U0.vector()[:] = U_temp
 
 		self.u0, self.v0 = split(self.U0)
 

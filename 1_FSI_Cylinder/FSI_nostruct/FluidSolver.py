@@ -226,6 +226,8 @@ class FluidSolver(object):
 		#ufile = File("results_cylinder/velocity.pvd")
 		#pfile = File("results_cylinder/pressure.pvd")
 
+
+
 	def solveFluidProblem(self, p_s, meshInterfaceVelocity, meshDisplacement, meshVelocity):
 		if self.solverMethod == "IPCS":
 			self.IPCS_Fluid_Solver(p_s, meshInterfaceVelocity, meshDisplacement, meshVelocity)
@@ -246,9 +248,9 @@ class FluidSolver(object):
 		self.A3 = assemble(self.a3)
 
 
+
+
 		self.mesh.bounding_box_tree().build(self.mesh)
-
-
 		# mesh velocity is on degree 1 function space in undeformed domain.
 		# copy degree 1 to degree 1f
 		self.meshVelocityCurrent1.vector()[:] = meshVelocity.vector().get_local()

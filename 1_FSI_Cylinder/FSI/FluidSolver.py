@@ -32,30 +32,11 @@ class FluidSolver(object):
 		self.tensorSpace = TensorFunctionSpace(self.mesh, self.elementType, self.pressureElementDegree)
 		self.tensorSpaceRef = TensorFunctionSpace(p_s.meshRef, self.elementType, self.pressureElementDegree)
 
-		## Functions for results
-		self.u_res = Function(self.vectorSpace, name = 'u')
-		self.p_res = Function(self.scalarSpace, name = 'p')
-        # called only for saving results... weird...
-
-		# ## Peclet number
-		# self.pecletSpace  = FunctionSpace(self.mesh, "DG", 1)
-		#
-		# self.pecletNumber = Function(self.pecletSpace)
-		# self.cfl = Function(self.pecletSpace)
-		#
-		# self.dofmap_Pe = self.pecletSpace.dofmap()
-		#
-		# self.dof_to_cell = [cell for cell in range(self.mesh.num_cells())
-		#                for dof in self.dofmap_Pe.cell_dofs(cell)]
-		# self.dofs_peclet = self.pecletSpace.tabulate_dof_coordinates().reshape((self.pecletSpace.dim(),-1))
-		#
-
 		# Functions for solver at previos and current time steps... could also be results...
 		self.u0 = Function(self.vectorSpace) 	# Previous time step
 		self.u1  = Function(self.vectorSpace)	# Current time step
 		self.p1 = Function(self.scalarSpace)	# Current time step
 		self.p0  = Function(self.scalarSpace)	# Previous time step
-
 
 		self.meshLocal = Function(self.vectorSpace)
 
@@ -65,15 +46,22 @@ class FluidSolver(object):
 		#self.u0 = Constant((0,)*2)
 		#self.v0 = Constant((0,)*2)
 
-		# load data
-		#u_temp = np.loadtxt('nodal_u_64')
-		#self.u0.vector()[:] = u_temp
-		#p_temp = np.loadtxt('nodal_p_64')
-		#self.p0.vector()[:] = p_temp
+		# # load saved data
+		# u_temp = np.loadtxt('Restart_FSI/nodal_u_1')
+		# self.u0.vector()[:] = u_temp
+		# p_temp = np.loadtxt('Restart_FSI/nodal_p_1')
+		# self.p0.vector()[:] = p_temp
 
-		# fluid velocity on interface, functionspace and function
+		### Optional: compute Peclet and CFL numbers
+		# self.pecletSpace  = FunctionSpace(self.mesh, "DG", 1)
+		# self.pecletNumber = Function(self.pecletSpace)
+		# self.cfl = Function(self.pecletSpace)
+		# self.dofmap_Pe = self.pecletSpace.dofmap()
+		# self.dof_to_cell = [cell for cell in range(self.mesh.num_cells())
+		#                for dof in self.dofmap_Pe.cell_dofs(cell)]
+		# self.dofs_peclet = self.pecletSpace.tabulate_dof_coordinates().reshape((self.pecletSpace.dim(),-1))
+
 		# self.interfaceFluidVectorSpace = VectorFunctionSpace(p_s.interfaceFluid, "CG", 1)
-		# interfaceFluidCoords = self.interfaceFluidVectorSpace.tabulate_dof_coordinates().reshape((self.interfaceFluidVectorSpace.dim(),-1))
 
 		# Function for fluid interface velocity
 		# self.fluidInterfaceVelocity = Function(self.interfaceFluidVectorSpace)
@@ -92,9 +80,13 @@ class FluidSolver(object):
 		self.u_current = Function(self.vectorSpaceMesh, name = 'u')
 		self.u_local = Function(self.vectorSpace, name = 'u')
 
+		## Functions for saving results
+		self.u_res = Function(self.vectorSpace, name = 'u')
+		self.p_res = Function(self.scalarSpace, name = 'p')
 		# self.pe = Function(self.pecletSpace, name = 'pe')
 		# self.cfl2 = Function(self.pecletSpace, name = 'cfl')
 
+		# If using interface for velocity BC:
 		# self.interfaceFluidTensorSpace = TensorFunctionSpace(p_s.interfaceFluid, "CG", 1)
 		# interfaceFluidTensorCoords = self.interfaceFluidTensorSpace.tabulate_dof_coordinates().reshape((self.interfaceFluidTensorSpace.dim(),-1))
 
@@ -236,7 +228,7 @@ class FluidSolver(object):
 
 		# self.fluidInterfaceVelocity2 = project(self.fluidInterfaceVelocity, self.interfaceFluidVectorSpace2, solver_type = "mumps", \
 			# form_compiler_parameters = {"cpp_optimize" : True, "representation" : "uflacs"} )
-
+#
 		[bc.apply(self.A1) for bc in self.bcu]
 		[bc.apply(self.A2) for bc in self.bcp]
 		[bc.apply(self.A3) for bc in self.bcu]

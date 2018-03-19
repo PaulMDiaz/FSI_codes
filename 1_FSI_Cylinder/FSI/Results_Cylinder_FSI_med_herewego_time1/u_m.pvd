@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<VTKFile type="Collection" version="0.1">
+  <Collection>
+    <DataSet timestep="0.001" part="0" file="u_m000000.vtu" />
+    <DataSet timestep="0.002" part="0" file="u_m000001.vtu" />
+    <DataSet timestep="0.0030000000000000001" part="0" file="u_m000002.vtu" />
+    <DataSet timestep="0.0040000000000000001" part="0" file="u_m000003.vtu" />
+    <DataSet timestep="0.0050000000000000001" part="0" file="u_m000004.vtu" />
+  </Collection>
+</VTKFile>

@@ -13,6 +13,7 @@ import pylab as plt
 import scipy.io
 import math
 
+# import time
 ### TO DO:
 # save boundary data in neater way
 # save to a folder.
@@ -20,6 +21,7 @@ import math
 # consider mesh velocity in fluid variational form, should this have been adjusted to
 # deformed mesh? and element degree 2 function space? May affect things.
 
+# start = time.time()
 
 parameters["allow_extrapolation"] = True
 set_log_level(ERROR)
@@ -71,18 +73,44 @@ p_s.defineBoundaryConditions(structureSolver, fluidSolver, meshSolver, p_s)
 
 p_s.defineInterfaceDofs(structureSolver, fluidSolver, meshSolver, p_s)
 
+
+#################################################################################
+### Load solution from previous run
+#################################################################################
+
+# # fluid
+# u_temp = np.loadtxt('Restart_FSI_t2/nodal_u_1')
+# fluidSolver.u0.vector()[:] = u_temp
+# p_temp = np.loadtxt('Restart_FSI_t2/nodal_p_1')
+# fluidSolver.p0.vector()[:] = p_temp
+#
+# # structure
+# u_temp = np.loadtxt('Restart_FSI_t2/nodal_Ustr_1')
+# structureSolver.U0.vector()[:] = u_temp
+# structureSolver.u0, structureSolver.v0 = split(structureSolver.U0)
+#
+# # mesh
+# u_temp = np.loadtxt('Restart_FSI_t2/nodal_m_disp1')
+# meshSolver.u1.vector()[:] = u_temp
+# u_temp = np.loadtxt('Restart_FSI_t2/nodal_m_disp0')
+# meshSolver.u0.vector()[:] = u_temp
+#
+# meshSolver.meshVelocity.vector()[:] = (1.0/meshSolver.k)*(meshSolver.u1.vector().get_local()-meshSolver.u0.vector().get_local())
+# meshSolver.meshVelocity.set_allow_extrapolation(True)
+# meshSolver.meshDisplacment = 0.5*(meshSolver.u1+meshSolver.u0)
+
 #################################################################################
 ### Further trouble shooting things, track traction and bar velocities
 #################################################################################
 
 # Initialize tensor to record traction
 # size is all nodes on FSI by x and y for fluid and structure (4) by # t steps
-traction_tensor = np.zeros((p_s.i_s_V_fsi.size,int(p_s.T/p_s.dt)+1))
+# traction_tensor = np.zeros((p_s.i_s_V_fsi.size,int(p_s.T/p_s.dt)+1))
 
 # Initialize tensor to record FSI velocites.
 # Size is all structure velocity nodes on FSI by 6 (mesh, fluid and structure. Split into FSI later)
 
-bar_vel_tensor = np.zeros((p_s.i_s_V_fsi.size,3,int(p_s.T/p_s.dt)+1))
+# bar_vel_tensor = np.zeros((p_s.i_s_V_fsi.size,3,int(p_s.T/p_s.dt)+1))
 
 #### for traction comparison:
 #s_normal_stresses = Function(structureSolver.scalarSpace)
@@ -274,9 +302,9 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 	# size i_f_S_fsi.size, 4, dt
 	# traction_tensor[:,:,count] = np.column_stack((f_Traction_x,f_Traction_y,s_Traction_x,s_Traction_y))
-	traction_tensor[:,count] = t_s_FSI
+	# traction_tensor[:,count] = t_s_FSI
 
-	bar_vel_tensor[:, :, count] = np.column_stack((v_s_FSI, u_m_FSI, u_f_FSI))
+	# bar_vel_tensor[:, :, count] = np.column_stack((v_s_FSI, u_m_FSI, u_f_FSI))
 
 	##u11, v11 = structureSolver.U.split(deepcopy = True)
 	results[count,:] = [u11(0.6,0.2)[0], u11(0.6,0.2)[1], drag, lift]
@@ -339,19 +367,22 @@ while p_s.t + p_s.dt<= p_s.T: # + DOLFIN_EPS:
 
 		scipy.io.savemat(pwd_results+'cylinder_fsi_course.mat', mdict={'results':results})
 
-		scipy.io.savemat(pwd_results+'traction_mesh_med.mat', mdict={'traction_tensor':traction_tensor})
-		scipy.io.savemat(pwd_results+'coordinates_fsi_traction_vector.mat', mdict={'tractionCoords':tractionCoords})
+		# scipy.io.savemat(pwd_results+'traction_mesh_med.mat', mdict={'traction_tensor':traction_tensor})
+		# scipy.io.savemat(pwd_results+'coordinates_fsi_traction_vector.mat', mdict={'tractionCoords':tractionCoords})
 
-		scipy.io.savemat(pwd_results+'bar_vel_tensor_mesh_med.mat', mdict={'bar_vel_tensor':bar_vel_tensor})
+		# scipy.io.savemat(pwd_results+'bar_vel_tensor_mesh_med.mat', mdict={'bar_vel_tensor':bar_vel_tensor})
 
-		coordinates_fsi_Vector = p_s.dofs_s_V[p_s.i_s_V_fsi]
-		scipy.io.savemat(pwd_results+'coordinates_fsi_mesh_med.mat', mdict={'coordinates_fsi_Vector':coordinates_fsi_Vector})
+		# coordinates_fsi_Vector = p_s.dofs_s_V[p_s.i_s_V_fsi]
+		# scipy.io.savemat(pwd_results+'coordinates_fsi_mesh_med.mat', mdict={'coordinates_fsi_Vector':coordinates_fsi_Vector})
 
 
 	print("t =", p_s.t)
 
 
 # Save FSI values and validation metrics
+
+# end = time.time()
+# print(end-start)
 
 pwd_restart = './Restart_FSI/'
 pwd_results = './Results_FSI/'
@@ -378,10 +409,10 @@ np.savetxt(pwd_restart+'nodal_Ustr_1', nodal_values_U)
 
 scipy.io.savemat(pwd_results+'cylinder_fsi_stiff.mat', mdict={'results':results})
 
-scipy.io.savemat(pwd_results+'traction_mesh_med.mat', mdict={'traction_tensor':traction_tensor})
-scipy.io.savemat(pwd_results+'coordinates_fsi_traction_vector.mat', mdict={'tractionCoords':tractionCoords})
+# scipy.io.savemat(pwd_results+'traction_mesh_med.mat', mdict={'traction_tensor':traction_tensor})
+# scipy.io.savemat(pwd_results+'coordinates_fsi_traction_vector.mat', mdict={'tractionCoords':tractionCoords})
 
-scipy.io.savemat(pwd_results+'bar_vel_tensor_mesh_med.mat', mdict={'bar_vel_tensor':bar_vel_tensor})
+# scipy.io.savemat(pwd_results+'bar_vel_tensor_mesh_med.mat', mdict={'bar_vel_tensor':bar_vel_tensor})
 
-coordinates_fsi_Vector = p_s.dofs_s_V[p_s.i_s_V_fsi]
-scipy.io.savemat(pwd_results+'coordinates_fsi_mesh_med.mat', mdict={'coordinates_fsi_Vector':coordinates_fsi_Vector})
+# coordinates_fsi_Vector = p_s.dofs_s_V[p_s.i_s_V_fsi]
+# scipy.io.savemat(pwd_results+'coordinates_fsi_mesh_med.mat', mdict={'coordinates_fsi_Vector':coordinates_fsi_Vector})

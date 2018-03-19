@@ -34,6 +34,11 @@ class MeshSolver(object):
 		self.u0 = Function(self.vectorSpace)	# previous time step mesh displacement
 		self.u1 = Function(self.vectorSpace)	# current time step mesh displacement
 
+		# u_temp = np.loadtxt('Restart_FSI/nodal_m_disp1')
+		# self.u1.vector()[:] = u_temp
+		# u_temp = np.loadtxt('Restart_FSI/nodal_m_disp0')
+		# self.u0.vector()[:] = u_temp
+
 		self.meshVelocity = Function(self.vectorSpace)
 		self.meshDisplacment = Function(self.vectorSpace)
 

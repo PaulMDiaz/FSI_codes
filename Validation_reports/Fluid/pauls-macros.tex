@@ -1,0 +1,200 @@
+
+
+% Lots of macros. Thanks to D.F. Gleich for a bunch of these. 
+
+\graphicspath{{./}{./figs/}}
+
+  \def\clap#1{\hbox to 0pt{\hss#1\hss}}
+  \def\mathclap{\mathpalette\mathclapinternal}
+  \def\mathclapinternal#1#2{%
+    \clap{$\mathsurround=0pt#1{#2}$}}
+
+\usepackage{bm}
+\providecommand{\mat}[1]{\bm{#1}}%
+\renewcommand{\vec}[1]{\mathbf{#1}}
+\newcommand{\vecalt}[1]{\bm{#1}}
+
+% Commands
+% bold upper case
+\providecommand{\eye}{\mat{I}}
+\providecommand{\mA}{\ensuremath{\mat{A}}}
+\providecommand{\mB}{\ensuremath{\mat{B}}}
+\providecommand{\mC}{\ensuremath{\mat{C}}}
+\providecommand{\mD}{\ensuremath{\mat{D}}}
+\providecommand{\mE}{\ensuremath{\mat{E}}}
+\providecommand{\mF}{\ensuremath{\mat{F}}}
+\providecommand{\mG}{\ensuremath{\mat{G}}}
+\providecommand{\mH}{\ensuremath{\mat{H}}}
+\providecommand{\mI}{\ensuremath{\mat{I}}}
+\providecommand{\mJ}{\ensuremath{\mat{J}}}
+\providecommand{\mK}{\ensuremath{\mat{K}}}
+\providecommand{\mL}{\ensuremath{\mat{L}}}
+\providecommand{\mM}{\ensuremath{\mat{M}}}
+\providecommand{\mN}{\ensuremath{\mat{N}}}
+\providecommand{\mO}{\ensuremath{\mat{O}}}
+\providecommand{\mP}{\ensuremath{\mat{P}}}
+\providecommand{\mQ}{\ensuremath{\mat{Q}}}
+\providecommand{\mR}{\ensuremath{\mat{R}}}
+\providecommand{\mS}{\ensuremath{\mat{S}}}
+\providecommand{\mT}{\ensuremath{\mat{T}}}
+\providecommand{\mU}{\ensuremath{\mat{U}}}
+\providecommand{\mV}{\ensuremath{\mat{V}}}
+\providecommand{\mW}{\ensuremath{\mat{W}}}
+\providecommand{\mX}{\ensuremath{\mat{X}}}
+\providecommand{\mY}{\ensuremath{\mat{Y}}}
+\providecommand{\mZ}{\ensuremath{\mat{Z}}}
+\providecommand{\mLambda}{\ensuremath{\mat{\Lambda}}}
+\providecommand{\mSigma}{\ensuremath{\mat{\Sigma}}}
+\providecommand{\mzero}{\ensuremath{\mat{0}}}
+\providecommand{\mPsi}{\ensuremath{\mat{\Psi}}}
+\providecommand{\mOmega}{\ensuremath{\mat{\Omega}}}
+
+\providecommand{\ones}{\vec{e}}
+\providecommand{\va}{\ensuremath{\vec{a}}}
+\providecommand{\vb}{\ensuremath{\vec{b}}}
+\providecommand{\vc}{\ensuremath{\vec{c}}}
+\providecommand{\vd}{\ensuremath{\vec{d}}}
+\providecommand{\ve}{\ensuremath{\vec{e}}}
+\providecommand{\vf}{\ensuremath{\vec{f}}}
+\providecommand{\vg}{\ensuremath{\vec{g}}}
+\providecommand{\vh}{\ensuremath{\vec{h}}}
+\providecommand{\vi}{\ensuremath{\vec{i}}}
+\providecommand{\vj}{\ensuremath{\vec{j}}}
+\providecommand{\vk}{\ensuremath{\vec{k}}}
+\providecommand{\vl}{\ensuremath{\vec{l}}}
+\providecommand{\vm}{\ensuremath{\vec{m}}}
+\providecommand{\vn}{\ensuremath{\vec{n}}}
+\providecommand{\vo}{\ensuremath{\vec{o}}}
+\providecommand{\vp}{\ensuremath{\vec{p}}}
+\providecommand{\vq}{\ensuremath{\vec{q}}}
+\providecommand{\vr}{\ensuremath{\vec{r}}}
+\providecommand{\vs}{\ensuremath{\vec{s}}}
+\providecommand{\vt}{\ensuremath{\vec{t}}}
+\providecommand{\vu}{\ensuremath{\vec{u}}}
+\providecommand{\vv}{\ensuremath{\vec{v}}}
+\providecommand{\vw}{\ensuremath{\vec{w}}}
+\providecommand{\vx}{\ensuremath{\vec{x}}}
+\providecommand{\vy}{\ensuremath{\vec{y}}}
+\providecommand{\vz}{\ensuremath{\vec{z}}}
+\providecommand{\vpi}{\ensuremath{\vecalt{\pi}}}
+\providecommand{\vxi}{\ensuremath{\vecalt{\xi}}}
+\providecommand{\vXi}{\ensuremath{\vecalt{\Xi}}}
+\providecommand{\vmu}{\ensuremath{\vecalt{\mu}}}
+\providecommand{\veps}{\ensuremath{\vecalt{\epsilon}}}
+\providecommand{\vomega}{\ensuremath{\vecalt{\omega}}}
+\providecommand{\vS}{\ensuremath{\vecalt{S}}}
+% hats!
+\newcommand{\hvc}{\hat{\vc}}
+\newcommand{\hmA}{\hat{\mA}}
+\newcommand{\hmC}{\hat{\mC}}
+\newcommand{\hmG}{\hat{\mG}}
+\newcommand{\hLambda}{\hat{\Lambda}}
+\newcommand{\hTheta}{\hat{\Theta}}
+\newcommand{\hmU}{\hat{\mU}}
+\newcommand{\hmV}{\hat{\mV}}
+\newcommand{\hmW}{\hat{\mW}}
+\newcommand{\hlambda}{\hat{\lambda}}
+\newcommand{\htheta}{\hat{\theta}}
+\newcommand{\hvw}{\hat{\vw}}
+\newcommand{\hvy}{\hat{\vy}}
+\newcommand{\hvz}{\hat{\vz}}
+\newcommand{\hpi}{\hat{\pi}}
+\newcommand{\hY}{\hat{Y}}
+\newcommand{\hZ}{\hat{Z}}
+\newcommand{\hsY}{\hat{\mathcal{Y}}}
+
+% tildes!
+\newcommand{\mWt}{\tilde{\mW}}
+\newcommand{\vwt}{\tilde{\vw}}
+\newcommand{\vyt}{\tilde{\vy}}
+\newcommand{\vzt}{\tilde{\vz}}
+
+% script upper case
+\newcommand{\sA}{\mathcal{A}}
+\newcommand{\sB}{\mathcal{B}}
+\newcommand{\sE}{\mathcal{E}}
+\newcommand{\sI}{\mathcal{I}}
+\newcommand{\sJ}{\mathcal{J}}
+\newcommand{\sN}{\mathcal{N}}
+\newcommand{\sL}{\mathcal{L}}
+\newcommand{\sQ}{\mathcal{Q}}
+\newcommand{\sR}{\mathcal{R}}
+\newcommand{\sS}{\mathcal{S}}
+\newcommand{\sX}{\mathcal{X}}
+\newcommand{\sY}{\mathcal{Y}}
+\newcommand{\sYt}{\tilde{\mathcal{Y}}}
+\newcommand{\sZ}{\mathcal{Z}}
+
+% script lower case
+\newcommand{\sx}{\chi}
+
+% bold greek
+\newcommand{\balpha}{\bm{\alpha}}
+\newcommand{\feta}{\bm{\eta}} % \feta is for ``fat eta''
+\newcommand{\bpi}{\bm{\pi}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bOmega}{\bm{\Omega}}
+\newcommand{\bomega}{\bm{\omega}}
+% some useful commands
+\newcommand{\ip}[2]{\left\langle #1,\,#2\right\rangle}
+\newcommand{\Exp}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\parens}[1]{\left(#1\right)}
+\newcommand{\braces}[1]{\left\lbrace #1 \right\rbrace}
+\newcommand{\brackets}[1]{\left[ #1 \right]}
+\newcommand{\CExp}[2]{\mathbb{E}\left[#1\,|\,#2\right]}
+\newcommand{\Cov}[2]{\operatorname{Cov}\left[#1,\,#2\right]}
+\newcommand{\Corr}[2]{\operatorname{Corr}\left[#1,\,#2\right]}
+\newcommand{\Var}[1]{\operatorname{Var}\left[#1\right]}
+\newcommand{\Prob}[1]{\mathbb{P}\left[#1\right]}
+\newcommand{\bmat}[1]{\begin{bmatrix}#1\end{bmatrix}}
+\newcommand{\ddx}[2]{\frac{\partial #1}{\partial x_{#2}}}
+\newcommand{\argmax}[1]{\underset{#1}{\mathrm{argmax}}}
+\newcommand{\argmin}[1]{\underset{#1}{\mathrm{argmin}}}
+\newcommand{\mini}[1]{\underset{#1}{\mathrm{minimum}}}
+\newcommand{\maxi}[1]{\underset{#1}{\mathrm{maximum}}}
+\newcommand{\st}{\text{subject to }}
+\newcommand{\trace}[1]{\operatorname{trace}\left(#1\right)}
+%\newcommand{\grad}[2]{\nabla_{#2} #1}
+\newcommand{\gf}{\nabla_\vx f}
+\newcommand{\intrho}[1]{\int #1 \,\rho\,d\vx}
+\newcommand{\lmax}{\lambda_{\text{max}}}
+\newcommand{\ran}[1]{\operatorname{ran}(#1)}
+\newcommand{\dist}[2]{\operatorname{dist}(\ran{#1},\,\ran{#2})}
+\newcommand{\verteq}{\rotatebox{90}{$\;\equiv\;$}}
+\newcommand{\vertap}{\rotatebox{90}{$\;\approx\;$}}
+\newcommand{\diag}[1]{\operatorname{diag}(#1)}
+\newcommand{\sspone}[2]{\operatorname{SSP}(#1,#2)}
+\newcommand{\ssptwo}[3]{\operatorname{SSP}(#1,#2,#3)}
+\newcommand{\myspan}[1]{\operatorname{ran}(#1)}
+\newcommand{\ymax}{y_{\text{max}}}
+\newcommand{\Pmax}{P_{\text{max}}}
+\newcommand{\vol}[1]{\operatorname{Vol}(#1)}
+\newcommand{\pone}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\ptwo}[2]{\frac{\partial^2 #1}{\partial #2^2}}
+\newcommand{\pthree}[2]{\frac{\partial^3 #1}{\partial #2^3}}
+\newcommand{\pfour}[2]{\frac{\partial^4 #1}{\partial #2^4}}
+\newcommand{\done}[2]{\frac{d #1}{d #2}}
+\newcommand{\dtwo}[2]{\frac{d^2 #1}{d #2^2}}
+\newcommand{\dthree}[2]{\frac{d^3 #1}{d #2^3}}
+\newcommand{\dfour}[2]{\frac{d^4 #1}{d #2^4}}
+% theorem environments
+\newtheorem{assumption}{Assumption}
+
+% for bayesian inversion
+\newcommand{\prior}{\rho_{\text{pr}}}
+\newcommand{\priory}{\rho_{\text{pr},Y}}
+\newcommand{\priorz}{\rho_{\text{pr},Z}}
+\newcommand{\lik}{\rho_{\text{lik}}}
+\newcommand{\post}{\rho_{\text{post}}}
+\newcommand{\postt}{\tilde{\rho}_{\text{post}}}
+\newcommand{\posty}{\rho_{\text{post},Y}}
+\newcommand{\cprior}{c_{\text{pr}}}
+\newcommand{\cpost}{c_{\text{post}}}
+\newcommand{\cpostt}{\tilde{c}_{\text{post}}}
+\newcommand{\dcov}{\Gamma_{\vd}}
+
+
+% File path abrev
+%\newcommand{\ip}[2]{\left\langle #1,\,#2\right\rangle}
+
+\newcommand{\figpath}[1]{code/figs/crops/#1}

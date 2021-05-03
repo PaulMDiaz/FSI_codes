@@ -1,0 +1,23 @@
+\frametitle{Solvers}
+
+Fluid Solver:
+\begin{itemize}
+\item Incompressible and Newtonian
+\item Incremental Pressure Correction Scheme (IPCS)
+%\item Continuous Galerkin elements.
+%\item Pressure element degree = 1
+%\item Velocity element degree = 2
+\end{itemize}
+
+Structure Solver:
+\begin{itemize}
+\item Elastic and compressible %(Nonlinear dynamic problem)
+\item CG1 method applied
+\item St Venant-Kirchoff material model
+%\item Continuous Galerkin elements of degree 1
+\end{itemize}
+Mesh Solver:
+\begin{itemize}
+\item Time dependent linear elasticity
+%\item Continuous Galerkin elements of degree 1
+\end{itemize}

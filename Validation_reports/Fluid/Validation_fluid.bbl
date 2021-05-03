@@ -1,0 +1,17 @@
+\begin{thebibliography}{1}
+
+\bibitem{schafer1996benchmark}
+Michael Sch{\"a}fer, Stefan Turek, Franz Durst, Egon Krause, and Rolf
+  Rannacher.
+\newblock Benchmark computations of laminar flow around a cylinder.
+\newblock In {\em Flow simulation with high-performance computers II}, pages
+  547--566. Springer, 1996.
+
+\bibitem{turek2006proposal}
+Stefan Turek and Jaroslav Hron.
+\newblock Proposal for numerical benchmarking of fluid-structure interaction
+  between an elastic object and laminar incompressible flow.
+\newblock {\em Lecture notes in computational science and engineering}, 53:371,
+  2006.
+
+\end{thebibliography}

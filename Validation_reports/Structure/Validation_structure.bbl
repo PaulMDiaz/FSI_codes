@@ -1,0 +1,21 @@
+\begin{thebibliography}{1}
+
+\bibitem{eriksson1996computational}
+Kenneth Eriksson.
+\newblock {\em Computational differential equations}, volume~1.
+\newblock Cambridge University Press, 1996.
+
+\bibitem{logg2012automated}
+Anders Logg, Kent-Andre Mardal, and Garth Wells.
+\newblock {\em Automated solution of differential equations by the finite
+  element method: The FEniCS book}, volume~84.
+\newblock Springer Science \& Business Media, 2012.
+
+\bibitem{turek2006proposal}
+Stefan Turek and Jaroslav Hron.
+\newblock Proposal for numerical benchmarking of fluid-structure interaction
+  between an elastic object and laminar incompressible flow.
+\newblock {\em Lecture notes in computational science and engineering}, 53:371,
+  2006.
+
+\end{thebibliography}

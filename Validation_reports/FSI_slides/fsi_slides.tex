@@ -1,0 +1,477 @@
+\documentclass{beamer}
+ 
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage{mhchem} % Package for chemical equation typesetting
+\usepackage{siunitx} % Provides the \SI{}{} command for typesetting SI units
+\usepackage{parskip}
+\usepackage{graphicx} % Required for the inclusion of images
+\usepackage{amssymb}
+\usepackage{placeins}
+\usepackage{cancel}
+\usepackage{tikz}
+\usepackage{listings}
+%\usepackage{fullpage}
+\usepackage{booktabs, multicol, multirow}
+%\include{pauls-macros}
+%\usepackage{comment}
+% \newcommand{\BibTeX}{\textsc{Bib}\TeX}
+
+ \usetheme{Singapore}
+ \usecolortheme{seahorse}
+%Information to be included in the title page:
+\usepackage{wrapfig}
+
+\title{FSI Test Case}
+\subtitle{Validation Process}
+
+%\begin{figure}[h]
+%\centering
+%	\includegraphics[width=0.4\textwidth]{Boulder}
+%%\caption{Weighted multiple of cell breakthrough, $\eta_p$ and $q_{total}$ }
+%	\label{fig:logo}	
+%\end{figure}
+
+\author[Felix Newberry]{Felix Newberry\\  }
+%{\small Advisor: Alireza Doostan}}
+\date[\today]{\today}
+
+\institute[CU]{University of Colorado Boulder - Aerospace Engineering}
+ 
+% How do quantities of interest behave  as functions of uncertain inputs? 
+ 
+ %\institute[CU] % (optional)
+%{Aerospace Engineering\\
+%  University of Colorado Boulder}
+
+ 
+%\logo{\includegraphics[height=1.5cm]{logo.png}}
+ 
+ 
+\begin{document}
+\frame{\titlepage}
+
+
+
+%\begin{frame}
+%\frametitle{Outline}
+%\tableofcontents%[part=1,pausesections]
+%\end{frame}
+%some handy commands.
+%\emph, \textbf, \alert, \color
+
+%\begin{verbatim} \end{verbatim} - requires [fragile] after frame}
+
+%left, center or right. ie \begin{center}
+%\itemize for list
+
+% overlays with \pause
+
+\section{FSI Outline}
+%\subsection*{}
+
+\begin{frame}[fragile]
+\frametitle{FSI Problem }
+
+%Goal: have a validated fluid structure interaction (FSI) problem. 
+%$$u_{top} = 1,  \:\:\: \nu = 0.01$$
+
+\textbf{Objective: FSI problem as a test case for UQ algorithms}
+
+FSI Problem:
+\begin{itemize}
+\item 2D channel flow past a cylinder with an elastic bar
+\item Arbitary Lagrangian-Eulerian (ALE) method
+\item Coded in Python, solved in FEniCS
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+	\includegraphics[width=0.8\textwidth]{domain}
+	%\caption{Computational domain \cite{turek2006proposal}}
+	\label{fig:domain}
+\end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Solvers}
+
+Fluid Solver: 
+\begin{itemize}
+\item Incompressible and Newtonian
+\item Incremental Pressure Correction Scheme (IPCS)
+%\item Continuous Galerkin elements. 
+%\item Pressure element degree = 1
+%\item Velocity element degree = 2
+\end{itemize}
+
+Structure Solver: 
+\begin{itemize}
+\item Elastic and compressible %(Nonlinear dynamic problem)
+\item CG1 method applied
+\item St Venant-Kirchoff material model
+%\item Continuous Galerkin elements of degree 1
+\end{itemize}
+Mesh Solver: 
+\begin{itemize}
+\item Time dependent linear elasticity
+%\item Continuous Galerkin elements of degree 1
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Solvers}
+
+\FloatBarrier
+\begin{table}[htbp]
+\centering
+\caption{Discretization Scheme}
+\begin{tabular}{ccc}
+\toprule
+ & Element Type & Element Degree \\
+\midrule
+Fluid Pressure & Continuous Galerkin & 1  \\
+Fluid Velocity  & Continuous Galerkin & 2  \\
+Structure & Continuous Galerkin & 1  \\
+Mesh & Continuous Galerkin & 1 \\
+\bottomrule
+\end{tabular}%\label{tab:fluid}%
+\label{tab:Discretization}%
+\end{table}%
+\FloatBarrier
+
+
+\end{frame}
+
+\section{Solver Validation}
+\begin{frame}
+\frametitle{Fluid Solver Validation}
+2D benchmark channel flow past a circular cylinder. \footnote{\tiny \textit{Benchmark computations of laminar flow around a cylinder.}  Sch{\"a}fer, Michael and Turek, Stefan and Durst, Franz and Krause, Egon and Rannacher, Rolf, Flow simulation with high-performance computers II, pages 547-566. Springer, 1996}
+
+Fluid Properties: 
+\begin{itemize}
+\item $\nu = 0.001 m^2 s^{-1}$
+\item $\rho = 1.0 kgm^{-3}$ in validation, $\rho = 1000.0 kgm^{-3}$ in FSI
+\item $\bar{U} = 0.2 ms^{-1}$ % parabolic inlet profile
+\end{itemize}
+
+Boundary Conditions:
+\begin{itemize}
+\item Inlet, $U(0, y) = \frac{4 U_m y (H - y)}{H^2} , V = 0$
+\item Walls and Cylinder, no-slip
+\item Outlet, $ P = 0$ 
+\end{itemize}
+Validation metrics:  $C_D$, $C_L$ and $\Delta P$. % lift and drag coefficients and pressure change from front to back of cylinder. 
+
+%$U_m = 0.3$ is the maximum velocity of the inlet (mean is 0.2) nu = 0.001 m^2 s^{-1}, rho = 1.0
+\end{frame}
+
+
+\begin{frame} 
+\frametitle{Fluid Solver Validation}
+
+\FloatBarrier
+\begin{table}[htbp]
+\centering
+\caption{Fluid Validation}
+\begin{tabular}{ccccc}
+\toprule
+$N$ & $ndof$ & $C_D$ & $C_L$ & $P_{diff}$ \\
+\midrule
+$32$ & $8503$ & $5.512$ & $-0.01117$ & $0.1142$ \\
+$64$ & $28760$ & $5.557$ & $0.01018$ & $0.1169$ \\
+$128$ & $108217$ & $5.569$ & $0.01103$ & $0.1173$ \\
+$256$ & $416630$ & $5.574$ & $0.01094$ & $0.1174$ \\
+\midrule
+Lower Bound & & $5.5700 $ & $ 0.0104 $ & $ 0.1172 $ \\
+Upper Bound & & $5.5900 $ & $ 0.0110$ & $ 0.1176$ \\
+\bottomrule
+\end{tabular}%\label{tab:fluid}%
+\label{tab:fluidvalidation}%
+\end{table}%
+\FloatBarrier
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Structure Solver Validation}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}
+
+Structure Parameters: 
+\begin{itemize}
+\item $\mu = 0.05 kgm^{-1} s^{-2}$
+\item $\nu = 0.4$
+\item $\rho = 1000 kgm^{-3}$ %undeformed density
+\end{itemize}
+
+\end{column}
+\begin{column}{0.5\textwidth}
+
+Boundary Conditions:
+\begin{itemize}
+\item fixed end
+\item gravitational force $ \textbf{g} = (0, 2)$ 
+\item traction set to 0
+\end{itemize}
+
+\end{column}
+\end{columns}
+
+\vspace{0.5cm}
+Validation metrics: mean and amplitude of point A. 
+
+\begin{figure}[h]
+\centering
+	\includegraphics[width=0.8\textwidth]{struct_geom}
+	%\caption{Structure geometry}
+	\label{fig:structGeom}
+\end{figure}
+
+\end{frame}
+
+% note that fluid validation was density of 1, not 1000. No trouble with static. 
+% structure validation same physical properties, no application of traction. 
+
+\begin{frame}
+\frametitle{Structure Solver Validation}
+
+\begin{figure}[h]
+\centering
+	\includegraphics[width=0.8\textwidth]{CSM_1}
+	%\caption{Displacement of point A benchmark data \cite{turek2006proposal}}
+	\label{fig:CSM_1}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure Solver Validation}
+
+\begin{figure}[h]
+\centering
+	\includegraphics[width=0.8\textwidth]{CSM_2}
+	%\caption{Simulated displacement of point A}
+	\label{fig:CSM_2}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Structure Solver Validation}
+Results for dynamic test case with time steps $dt = 0.02$, $0.01$, $0.005$
+\begin{columns}
+\begin{column}{0.5\textwidth}
+    \begin{center}
+     \includegraphics[width=0.9\textwidth]{CSM_3_data}      
+     \end{center}
+\end{column}
+\begin{column}{0.5\textwidth}
+   % \begin{center}
+    % \includegraphics[width=0.9\textwidth]{fig_ldc4}      
+     %\end{center}
+     \begin{center}
+     \includegraphics[width=0.9\textwidth]{CSM_3_sim}      
+     \end{center}
+
+\end{column}
+\end{columns}
+
+Slight differences, but closer than other references I have found \footnote{\tiny \textit{http://www.feelpp.org/benchmarks/csm/toolbox/bm-1/}}.
+%https://books.google.com/books?id=-6NSKaCcGXkC&pg=PA287&lpg=PA287&dq=csm+benchmark&source=bl&ots=IOJKIrdarN&sig=PIRQDamwsj7Fs_yRQfB_pbwMWTM&hl=en&sa=X&ved=0ahUKEwjIuKDo77zZAhVJ_4MKHVU5BvI4ChDoAQhBMAU#v=onepage&q=csm%20benchmark&f=false
+\end{frame}
+
+% mesh solver? 
+\section{FSI Approach}
+\begin{frame}
+\frametitle{FSI Approach}
+Three sub-problems comprised of the fluid, structure and mesh. Structure and mesh solved in undeformed reference domains, and fluid solved in deformed domain: 
+
+\begin{itemize}
+\item Reference domain $\Omega = \Omega_F \cup \Omega_S$, $\Omega_F \cap \Omega_S = 0$
+\item Deformed domain $\omega(t) = \omega_F(t) \cup \omega_S(t)$, $\omega_F(t) \cap \omega_S(t) = 0$
+\item FSI interface $\Gamma_{FSI}$ (reference), $\gamma_{FSI}(t)$ (deformed) 
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{FSI Approach}
+The mesh is constructed in GMSH. The structure and fluid meshes are constructed separately with coincident nodes on the shared boundary. 
+
+
+\FloatBarrier
+\begin{figure}[h]
+\centering
+	\includegraphics[width=0.8\textwidth]{mesh_fluid}
+	%\caption{Course mesh of fluid domain}
+	\label{fig:mesh_fluid}
+\end{figure}
+\FloatBarrier
+
+\FloatBarrier
+\begin{figure}[h]
+\centering
+	\includegraphics[width=0.8\textwidth]{mesh_structure}
+	\caption{Course mesh of reference structure and fluid domains}
+	\label{fig:mesh_structure}
+\end{figure}
+\FloatBarrier
+
+
+
+\end{frame}
+\begin{frame}
+\frametitle{FSI Algorithm}
+
+\begin{enumerate}
+\item Solve the fluid problem in the current fluid domain $\omega_F(t)$ 
+\item Solve structure problem in reference structure domain $\Omega_s$
+\item Solve mesh problem in reference fluid domain $\Omega_F$
+\item Repeat steps 1-3 until convergence
+\item Move to the subsequent time step
+\end{enumerate} 
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Interface Traction}
+Equal and opposite traction forces on interaction boundary. Cauchy stress tensor computed in current domain: 
+
+\begin{equation}
+\sigma_F = -p I + \mu_f (grad(u_f) + grad(u_f)^T )
+\end{equation}
+
+where $p$ is the fluid pressure, $\mu_f$ the dynamic viscosity and $u_f$ the fluid velocity. The fluid traction is transferred to the structure via the Piola map
+\begin{equation}
+ (j \sigma_F \cdot f^{-T}) \cdot n_f = -\sigma_s \cdot n_s 
+\end{equation}
+
+where $j = det (f)$ is the determinant of the Jacobi matrix $f$ computed from the mesh deformation. 
+
+%In practice in the FSI problem, the nodal values of $\sigma_F$ are first copied to s $sigma$ defined on the reference fluid mesh. Equation this one is then computed using the fluid mesh deformation, and the reference fluid mesh and structure mesh normals. 
+
+%Kinematic continuity 
+
+%Want velocity of fluid to match velocity of structure on interface. Done with approximation... That's basically it. 
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Interface Traction}
+
+\begin{itemize}
+\item Fluid stress computed in current fluid domain $\omega_F(t)$
+\item Fluid traction assembled in reference fluid domain $\Omega_F$ on a Continuous Galerkin degree 1 vector space 
+\item Fluid traction written to an expression and applied to FSI interface $\Gamma_{FSI}$ in structure variational form 
+\end{itemize}
+
+% I want to say that fluid pressure and velocity are first stepped back from current fluid domain onto reference domain. 
+%Fluid stress is calculated, and subjected to piola transform to obtain stress in reference domain. 
+%Traction assembled in reference fluid domain on CG degree 1. (is degree 1 okay?) 
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Interface Velocity and Mesh Coordinates}
+
+\begin{itemize}
+\item Mesh displacement interface Dirichlet BC prescribed as structure displacement on $\Gamma_{FSI}$
+\item Mesh velocity computed from current and previous time step
+\item Mesh velocity interpolated to function defined on $\Gamma_{FSI}$
+\item Velocity values copied to a function defined on current interface $\gamma_{FSI}$
+\item Current interface velocity written to an expression and applied to $\gamma_{FSI}$ as fluid velocity Dirichlet BC
+\item Fluid mesh and fluid interface mesh coordinates updated as reference coordinates plus current mesh deformation solution 
+\end{itemize}
+\end{frame}
+
+
+%% example/sample code: 
+%\begin{frame}[fragile]
+% \begin{lstlisting}
+%       self.u_vel.vector()[:] = (1.0/self.k)*(self.u12.vector().get_local() - self.u02.vector().get_local())
+% \end{lstlisting}
+%\end{frame}
+
+
+\section{FSI Results}
+\begin{frame}
+\frametitle{FSI Results}
+
+Printing 2-norm at each iteration of each time step asserts that: 
+\begin{itemize}
+\item mesh, fluid and structure velocities match on interface
+\item mesh and structure displacements match on interface
+\item the 2-norm of the mesh and fluid velocities reduces over iterations within a time step, as expected
+\end{itemize}
+
+A time step of $dt = 0.001$  yields physical fluid velocity and pressure results. The structure velocity behaves erratically throughout, often changing sign between time steps. Despite this the resulting structure displacement does seem reasonable until divergence after several hundred time steps. $dt = 0.0005$ yields similar results. 
+
+Code runs without issue when bar stiffness is very high. 
+
+\end{frame}
+
+\begin{frame}
+\frametitle{FSI Results}
+\begin{figure}[h]
+\centering
+	\includegraphics[width=\textwidth]{t_500}
+	\caption{ $dt = 0.001$, $t = 0.5s$}
+	\label{fig:t_500}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{FSI Results}
+\begin{figure}[h]
+\centering
+	\includegraphics[width=\textwidth]{t_600}
+	\caption{ $dt = 0.001$, $t = 0.6s$}
+	\label{fig:t_600}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{FSI Results}
+\begin{figure}[h]
+\centering
+	\includegraphics[width=\textwidth]{t_700}
+	\caption{ $dt = 0.001$, $t = 0.7s$}
+	\label{fig:t_700}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{FSI Results}
+\begin{figure}[h]
+\centering
+	\includegraphics[width=\textwidth]{t_800}
+	\caption{ $dt = 0.001$, $t = 0.8s$}
+	\label{fig:t_800}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{FSI Results}
+\begin{figure}[h]
+\centering
+	\includegraphics[width=\textwidth]{t_830}
+	\caption{ $dt = 0.001$, $t = 0.83s$}
+	\label{fig:t_830}
+\end{figure}
+\end{frame}
+%problem formulation and the discretization scheme
+%clearly describe the problem setup, discretization method/implementation, and the coupling approach in as much detail as possible
+%\end{frame}
+
+%\begin{frame}[allowframebreaks]
+%\frametitle{References }
+
+%\bibliography{validation}{}
+%\bibliographystyle{plain}
+%\end{frame}
+\end{document}
